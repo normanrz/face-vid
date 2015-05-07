@@ -13,6 +13,11 @@ allPngs <- mapply(function(folder){list.files(path=folder,pattern="png")}, allFo
 
 numberOfFrames <- mapply(function(l){length(l)}, allPngs)
 
-hist(numberOfFrames, main="Distribution of the number of frames over videos", xlab="Number of Frames")
+hist(numberOfFrames, breaks=100, main="Distribution of the number of frames over videos", xlab="Number of Frames")
 
 summary(numberOfFrames)
+
+cond <- sapply(numberOfFrames, function(n){n == min(numberOfFrames)})
+
+# Videos with the minimum number of frames
+numberOfFrames[cond]
