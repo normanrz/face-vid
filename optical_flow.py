@@ -1,9 +1,9 @@
 from __future__ import generators
-import cv2, os
+import cv2, os, sys
 import numpy as np
 
-IMAGE_PATH = "/Users/helga/Desktop/opticalflow/CK/cohn-kanade/S010/001/"
-CLASSIFIER_PATH = "/Users/helga/Desktop/opticalflow/haarcascade.xml"
+IMAGE_PATH = "/Users/therold/Dropbox/Uni/Practical Video Analyses/data/CK/cohn-kanade/S010/001/"
+CLASSIFIER_PATH = "/Users/therold/Dropbox/Uni/Practical Video Analyses/haarcascade.xml"
 
 faceCascade = cv2.CascadeClassifier(CLASSIFIER_PATH)
 
@@ -30,22 +30,24 @@ def detect_face(image):
 
 def face_pass(files):
 
-    maxX = maxY = maxWidth = maxHeight = 0
+    minX = minY = sys.maxint
+    maxWidth = maxHeight = 0
     images = []
 
     for file in files:
         image = cv2.imread(file)
         (x, y, w, h) = detect_face(image)
 
-        maxX = max(maxX, x)
-        maxY = max(maxY, y)
+
+        minX = min(minX, x)
+        minY = min(minY, y)
         maxWidth = max(maxWidth, w)
         maxHeight = max(maxHeight, h)
 
-        images.append(image) 
+        images.append(image)
 
     for image in images:
-        yield image[maxY : maxY + maxHeight, maxX : maxX + maxWidth]
+        yield image[minY : minY + maxHeight, minX : minX + maxWidth]
 
 
 def flow_pass(images):
@@ -54,12 +56,14 @@ def flow_pass(images):
     prev = images.next()
     hsv = np.zeros_like(prev)
     hsv[..., 1] = 255
-    
+
     prev = cv2.cvtColor(prev, cv2.COLOR_BGR2GRAY)
+    cv2.equalizeHist(prev)
 
     for image  in images:
 
         next = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        cv2.equalizeHist(next)
 
         # prev, next, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags[, flow]
         flow = cv2.calcOpticalFlowFarneback(prev, next,  0.5,  3,  15,  3,  2,  1.1,  0)
