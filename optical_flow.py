@@ -38,7 +38,6 @@ def face_pass(files):
         image = cv2.imread(file)
         (x, y, w, h) = detect_face(image)
 
-
         minX = min(minX, x)
         minY = min(minY, y)
         maxWidth = max(maxWidth, w)
@@ -47,7 +46,17 @@ def face_pass(files):
         images.append(image)
 
     for image in images:
-        yield image[minY : minY + maxHeight, minX : minX + maxWidth]
+
+        # crop image image to recognized face and apply elliptical mask
+        cropped_image = image[minY : minY + maxHeight, minX : minX + maxWidth]
+
+        center = (int(maxWidth  * 0.5), int(maxHeight * 0.5))
+        axes = (int(maxWidth * 0.4), int(maxHeight * 0.5))
+
+        mask = np.zeros_like(cropped_image)
+        # (cropped_image, center, axes, angle, startAngle, endAngle, color[, thickness[, lineType[, shift]]])  None
+        cv2.ellipse(mask, center, axes, 0, 0, 360, (255, 255, 255), -1)
+        yield np.bitwise_and(cropped_image, mask)
 
 
 def flow_pass(images):
