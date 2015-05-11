@@ -25,6 +25,10 @@ def detect_face(image):
     # Only use first result
     return faces[0]
 
+def preprocessMMI(image):
+
+    # crop the image to 360x576
+    return image[0:576, 360:720]
 
 def face_pass(files):
 
@@ -32,8 +36,19 @@ def face_pass(files):
     maxWidth = maxHeight = 0
     images = []
 
-    for file in files:
-        image = cv2.imread(file)
+    # for file in files:
+    cap = cv2.VideoCapture(files)
+    while cap.isOpened():
+
+        returnValue, img = cap.read()
+
+        if not returnValue:
+            break
+
+        # special case MMI dataset
+        image = preprocessMMI(img)
+
+        # image = cv2.imread(file)
         (x, y, w, h) = detect_face(image)
 
         minX = min(minX, x)
@@ -42,6 +57,8 @@ def face_pass(files):
         maxHeight = max(maxHeight, h)
 
         images.append(image)
+
+    cap.release()
 
     for image in images:
 
@@ -75,13 +92,9 @@ def flow_pass(images):
         # prev, next, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags[, flow]
         flow = cv2.calcOpticalFlowFarneback(prev, next,  0.5,  3,  15,  3,  2,  1.1,  0)
 
-        mag,  ang = cv2.cartToPolar(flow[..., 0],  flow[..., 1])
-        hsv[..., 0] = ang * 180 / np.pi / 2
-        hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
-        rgb = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-
-        cv2.imshow('frame', prev)
-        cv2.imshow('flow', rgb)
+        cv2.imshow('flow x', flow[..., 0])
+        cv2.imshow('flow y', flow[..., 1])
+        cv2.imshow('image ', image)
 
         # Wait indefinitely for user input
         k = cv2.waitKey(0) & 0xff
@@ -100,17 +113,17 @@ def flow_pass(images):
 def main():
 
     if len(sys.argv) < 2:
-        sys.exit("Usage: %s <path_to_image_directory>" % sys.argv[0])
+        sys.exit("Usage: %s <path_to_video>" % sys.argv[0])
 
     # read path to image as command argument
-    image_path = os.path.abspath(sys.argv[1])
+    video_path = os.path.abspath(sys.argv[1])
 
-    if not os.path.isdir(image_path):
-        sys.exit("The specified argument is not a valid directory")
+    if not os.path.isfile(video_path):
+        sys.exit("The specified argument is not a valid filename")
 
     # ready to rumble
-    image_files = list_files(image_path)
-    images = face_pass(image_files)
+    #image_files = list_files(video_path)
+    images = face_pass(video_path)
     flow_pass(images)
 
 
