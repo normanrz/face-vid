@@ -2,16 +2,11 @@ from __future__ import generators
 import cv2, os, sys, math
 import numpy as np
 
-CLASSIFIER_PATH = "/usr/local/Cellar/opencv/2.4.11/share/OpenCV/haarcascades/haarcascade_frontalface_default.xml"
+# CLASSIFIER_PATH = "/usr/local/Cellar/opencv/2.4.11/share/OpenCV/haarcascades/haarcascade_frontalface_default.xml"
+CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_face.xml")
 faceCascade = cv2.CascadeClassifier(CLASSIFIER_PATH)
 
-
-def list_files(dir):
-    "walk a directory tree, using a generator"
-    for f in sorted(os.listdir(dir)):
-        fullpath = os.path.join(dir,f)
-        yield fullpath
-
+# Do face detection and return the first face
 def detect_face(image):
 
     faces = faceCascade.detectMultiScale(
@@ -25,6 +20,7 @@ def detect_face(image):
     # Only use first result
     return faces[0]
 
+# Special processing relevant for the MMI facial dataset
 def preprocessMMI(image):
 
     # turn into greyscale
@@ -33,6 +29,7 @@ def preprocessMMI(image):
 
     # crop the image to 360x576
     return img[0:576, 360:720]
+
 
 def read_video(video, max_frame_count):
 
@@ -68,6 +65,8 @@ def read_video(video, max_frame_count):
     else:
         sys.exit("Error opening video file.")
 
+
+# Invoke face detection, find largest cropping window and apply elliptical mask
 def face_pass(images):
 
     minX = minY = sys.maxint
@@ -93,14 +92,13 @@ def face_pass(images):
         axes = (int(maxWidth * 0.4), int(maxHeight * 0.5))
 
         mask = np.zeros_like(cropped_image)
-        # (cropped_image, center, axes, angle, startAngle, endAngle, color[, thickness[, lineType[, shift]]])  None
         cv2.ellipse(mask, center, axes, 0, 0, 360, (255, 255, 255), -1)
 
         yield np.bitwise_and(cropped_image, mask)
 
 
+# Calculate the optical flow along the x and y axis
 def flow_pass(images):
-
 
     prev = images.next()
 
@@ -109,41 +107,55 @@ def flow_pass(images):
         # prev, next, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags[, flow]
         flow = cv2.calcOpticalFlowFarneback(prev, next,  0.5,  3,  15,  3,  2,  1.1,  0)
 
-        cv2.imshow('flow x', flow[..., 0])
-        cv2.imshow('flow y', flow[..., 1])
-        cv2.imshow('image ', next)
+        # horz = cv2.normalize(flow[...,0], None, 0, 255, cv2.NORM_MINMAX)
+        # vert = cv2.normalize(flow[...,1], None, 0, 255, cv2.NORM_MINMAX)
+        horz = flow[..., 0]
+        vert = flow[..., 1]
 
-        # Wait indefinitely for user input
-        k = cv2.waitKey(0) & 0xff
-        if k == 27:
-            break
-        elif k == ord('s'):
-            cv2.imwrite('opticalfb.png', next)
-            cv2.imwrite('opticalhsv.png', rgb )
+        horz = horz.astype("uint8")
+        vert = vert.astype("uint8")
 
-        prev = next
+        yield horz, vert
 
 
-    cv2.destroyAllWindows()
+def save_to_disk(output_path, frames, flow):
+
+    i = 0
+    for frame, flow in zip(frames, flow):
+
+        cv2.imwrite(os.path.join(output_path, "frame_%s.jpg" % i), frame)
+        cv2.imwrite(os.path.join(output_path, "flow_x_%s.jpg" % i), flow[0])
+        cv2.imwrite(os.path.join(output_path, "flow_y_%s.jpg" % i), flow[1])
+
+        i += 1
 
 
 def main():
 
-    if len(sys.argv) < 3:
-        sys.exit("Usage: %s <max_frame_count> <path_to_video>" % sys.argv[0])
+    if len(sys.argv) < 4:
+        sys.exit("Usage: %s <max_frame_count> <path_to_video> <output_path>" % sys.argv[0])
 
     # read path to image as command argument
     max_frame_count = int(sys.argv[1])
     video_path = os.path.abspath(sys.argv[2])
+    output_path = os.path.abspath(sys.argv[3])
 
     if not os.path.isfile(video_path):
-        sys.exit("The specified argument is not a valid filename")
+        sys.exit("The specified <path_to_video> argument is not a valid filename")
+
+    if not os.path.isdir(output_path):
+        sys.exit("The specified <output_path> argument is not a valid directory")
 
     # ready to rumble
     frames = read_video(video_path, max_frame_count)
-    images = face_pass(frames)
-    flow_pass(images)
 
+    frames = face_pass(frames)
+    flow = flow_pass(frames)
+
+    save_to_disk(output_path, frames, flow)
+
+    # exit
+    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     main()
