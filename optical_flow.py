@@ -2,9 +2,7 @@ from __future__ import generators
 import cv2, os, sys
 import numpy as np
 
-IMAGE_PATH = "/Users/therold/Dropbox/Uni/Practical Video Analyses/data/CK/cohn-kanade/S010/001/"
-CLASSIFIER_PATH = "/Users/therold/Dropbox/Uni/Practical Video Analyses/haarcascade.xml"
-
+CLASSIFIER_PATH = "/usr/local/Cellar/opencv/2.4.11/share/OpenCV/haarcascades/haarcascade_frontalface_default.xml"
 faceCascade = cv2.CascadeClassifier(CLASSIFIER_PATH)
 
 
@@ -69,7 +67,7 @@ def flow_pass(images):
     prev = cv2.cvtColor(prev, cv2.COLOR_BGR2GRAY)
     cv2.equalizeHist(prev)
 
-    for image  in images:
+    for image in images:
 
         next = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         cv2.equalizeHist(next)
@@ -101,8 +99,17 @@ def flow_pass(images):
 
 def main():
 
+    if len(sys.argv) < 2:
+        sys.exit("Usage: %s <path_to_image_directory>" % sys.argv[0])
 
-    image_files = list_files(IMAGE_PATH)
+    # read path to image as command argument
+    image_path = os.path.abspath(sys.argv[1])
+
+    if not os.path.isdir(image_path):
+        sys.exit("The specified argument is not a valid directory")
+
+    # ready to rumble
+    image_files = list_files(image_path)
     images = face_pass(image_files)
     flow_pass(images)
 
