@@ -1,9 +1,9 @@
 from __future__ import generators
-import cv2, os, sys, math
+import cv2, os, sys, itertools
 import numpy as np
 
-# CLASSIFIER_PATH = "/usr/local/Cellar/opencv/2.4.11/share/OpenCV/haarcascades/haarcascade_frontalface_default.xml"
 CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_face.xml")
+SCALE_FLOW = 10
 faceCascade = cv2.CascadeClassifier(CLASSIFIER_PATH)
 
 # Do face detection and return the first face
@@ -100,33 +100,30 @@ def face_pass(images):
 # Calculate the optical flow along the x and y axis
 def flow_pass(images):
 
+    # Make a copy of the first image, to compare with itself
+    # Why? We want as many flow difference images as frames: len(flow) = len(frames)
+    # I wish I could just peek here...  :-(
     prev = images.next()
 
-    for next in images:
+    for next in itertools.chain([prev], images):
 
         # prev, next, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags[, flow]
         flow = cv2.calcOpticalFlowFarneback(prev, next,  0.5,  3,  15,  3,  2,  1.1,  0)
 
-        # horz = cv2.normalize(flow[...,0], None, 0, 255, cv2.NORM_MINMAX)
-        # vert = cv2.normalize(flow[...,1], None, 0, 255, cv2.NORM_MINMAX)
-        horz = flow[..., 0]
-        vert = flow[..., 1]
+        horz = cv2.convertScaleAbs(flow[..., 0], None, 128 / SCALE_FLOW, 128)
+        vert = cv2.convertScaleAbs(flow[..., 1], None, 128 / SCALE_FLOW, 128)
 
-        horz = horz.astype("uint8")
-        vert = vert.astype("uint8")
-
-        yield horz, vert
+        yield next, horz, vert
 
 
-def save_to_disk(output_path, frames, flow):
+def save_to_disk(output_path, frames_flows_gen):
 
     i = 0
-    for frame, flow in zip(frames, flow):
+    for frame, flow_x, flow_y in frames_flows_gen:
 
-        cv2.imwrite(os.path.join(output_path, "frame_%s.jpg" % i), frame)
-        cv2.imwrite(os.path.join(output_path, "flow_x_%s.jpg" % i), flow[0])
-        cv2.imwrite(os.path.join(output_path, "flow_y_%s.jpg" % i), flow[1])
-
+        cv2.imwrite(os.path.join(output_path, "frame_%s.png" % i), frame)
+        cv2.imwrite(os.path.join(output_path, "flow_x_%s.png" % i), flow_x)
+        cv2.imwrite(os.path.join(output_path, "flow_y_%s.png" % i), flow_y)
         i += 1
 
 
@@ -149,13 +146,12 @@ def main():
     # ready to rumble
     frames = read_video(video_path, max_frame_count)
 
-    frames = face_pass(frames)
-    flow = flow_pass(frames)
-
-    save_to_disk(output_path, frames, flow)
+    # 1. find faces 2. calc flow 3. save to disk
+    save_to_disk(output_path, flow_pass(face_pass(frames)))
 
     # exit
     cv2.destroyAllWindows()
+
 
 if __name__ == "__main__":
     main()
