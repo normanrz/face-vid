@@ -1,3 +1,16 @@
+###############################################################################
+#
+# Use this script the extract frames from the MMI Facial Expresssion DB.
+# Every n-th frame will be extracted. Frames will be processed in the following
+# manner:
+#   - converted to grey-scale
+#   - cropping to detected faces
+#   - black oval mask around face
+#   - save optical flow along x & y axis
+#
+# Usage: extract_frames.py <max_frame_count> <path_to_video> <output_path>
+#
+###############################################################################
 from __future__ import generators
 import cv2, os, sys, itertools
 import numpy as np
@@ -27,8 +40,7 @@ def preprocessMMI(image):
     img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     cv2.equalizeHist(img)
 
-    # crop the image to 360x576
-    return img[0:576, 360:720]
+    return img
 
 
 def read_video(video, max_frame_count):
