@@ -61,7 +61,7 @@ def parseXML(path):
   result = SortedDict()
   for au in action_units:
 
-    facs_code = int(au.get("Number"))
+    facs_code = au.get("Number")
 
     for marker in au.findall("Marker"):
       frame_number = int(marker.get("Frame"))
