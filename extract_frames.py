@@ -40,13 +40,13 @@ def preprocessMMI(image):
     imageAsGray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     cv2.equalizeHist(imageAsGray)
 
-    
+
     imageAsYCrCb = cv2.cvtColor(image, cv2.COLOR_BGR2YCR_CB) #change the color image from BGR to YCrCb format
     channels = cv2.split(imageAsYCrCb) #split the image into channels
     channels[0] = cv2.equalizeHist(channels[0]) #equalize histogram on the 1st channel (Y)
     imageWithEqualizedHist = cv2.merge(channels) #merge 3 channels including the modified 1st channel into one image
     imageAsBGR = cv2.cvtColor(imageWithEqualizedHist, cv2.COLOR_YCR_CB2BGR) #change the color image from YCrCb to BGR format (to display image properly)
-    
+
     return (imageAsGray,imageAsBGR)
 
 
@@ -117,8 +117,10 @@ def face_pass(framesGray, framesBGR):
         maxWidth = max(maxWidth, w)
         maxHeight = max(maxHeight, h)
 
-    (map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesGray),
-     map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesBGR))
+    return (
+        map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesGray),
+        map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesBGR)
+    )
 
 def calculateFlow(frame1, frame2):
     flow = cv2.calcOpticalFlowFarneback(frame1, frame2,  0.5,  3,  15,  3,  2,  1.1,  0)
@@ -131,12 +133,14 @@ def calculateFlow(frame1, frame2):
 def flow_pass_static(framesGray):
     #TODO: might not be the flow we want, comparing only the first image to all others
     first = framesGray[0]
-    return [calculateFlow(first, f) for f in framesGray]
+    flows = [calculateFlow(first, f) for f in framesGray]
+    return [list(t) for t in zip(*flows)]
 
 # Calculate the optical flow along the x and y axis
 # always compares with the previous image in the series
 def flow_pass_continuous(framesGray):
-    return [calculateFlow(f1, f2) for f1,f2 in zip(framesGray[0]+framesGray, framesGray)]
+    flows = [calculateFlow(f1, f2) for f1,f2 in zip(framesGray[0]+framesGray, framesGray)]
+    return [list(t) for t in zip(*flows)]
 
 def save_to_disk(output_path, frames, name):
     for i,frame in enumerate(frames):
@@ -163,9 +167,10 @@ def main():
 
     # 1. find faces 2. calc flow 3. save to disk
     face_pass_result = face_pass(framesGray, framesBGR)
-    if (face_pass_result)
+    if face_pass_result:
         croppedFramesGray, croppedFramesBGR = face_pass_result
-        framesHorizontalFlow, framesVerticalFlow = flow_pass_static(croppedFramesGray)
+        optical_flows = flow_pass_static(croppedFramesGray)
+        framesHorizontalFlow, framesVerticalFlow = [list(t) for t in zip(*optical_flows)]
         save_to_disk(output_path, croppedFramesBGR, "frame-bgr")
         save_to_disk(output_path, croppedFramesGray, "frame-gray")
         save_to_disk(output_path, framesHorizontalFlow, "flow-x")

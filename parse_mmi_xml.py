@@ -39,18 +39,18 @@ def parseXML(path):
   return result
 
 # Override method of extract_frame.py
-def save_to_disk_with_facs(output_path, frames, name, frames_to_facs):
+def save_to_disk_with_facs(output_path, frames, name, metadata):
     for i,frame in enumerate(frames):
       # name files according to their metadata
       frame_number = metadata.keys()[i]
       facs_units = metadata.values()[i]
       facs_string = "_".join(map(str,facs_units))
       post_processed_frame = post_process_mmi(frame)
-      cv2.imwrite(os.path.join(output_path, "%s-%s_%s.png" % (name, frame_number, filename_postfix)), post_processed_frame)
+      cv2.imwrite(os.path.join(output_path, "%s-%s_%s.png" % (name, frame_number, facs_string)), post_processed_frame)
 
 
 def post_process_mmi(frame):
-  return cv2.resize(frame, (230,230)), frames)
+  return cv2.resize(frame, (230,230))
 
 
 def main():
@@ -76,13 +76,17 @@ def main():
   framesGray, framesBGR = read_video(video_path, 1, metadata)
 
   face_pass_result = face_pass(framesGray, framesBGR)
-  if (face_pass_result)
-      croppedFramesGray, croppedFramesBGR = face_pass_result
-      framesHorizontalFlow, framesVerticalFlow = flow_pass_static(croppedFramesGray)
-      save_to_disk(output_path, croppedFramesBGR, "frame-bgr")
-      save_to_disk(output_path, croppedFramesGray, "frame-gray")
-      save_to_disk(output_path, framesHorizontalFlow, "flow-x")
-      save_to_disk(output_path, framesVerticalFlow, "flow-y")
+  if face_pass_result:
+    croppedFramesGray, croppedFramesBGR = face_pass_result
+    static_flows = flow_pass_static(croppedFramesGray)
+    continous_flows = flow_pass_continuous(croppedFramesGray)
+
+    save_to_disk_with_facs(output_path, croppedFramesBGR, "frame-bgr", metadata)
+    save_to_disk_with_facs(output_path, croppedFramesGray, "frame-gray", metadata)
+    save_to_disk_with_facs(output_path, static_flows[0], "static-flow-x", metadata)
+    save_to_disk_with_facs(output_path, static_flows[1], "static-flow-y", metadata)
+    save_to_disk_with_facs(output_path, continous_flows[0], "cont-flow-x", metadata)
+    save_to_disk_with_facs(output_path, continous_flows[1], "cont-flow-y", metadata)
 
   # exit
   cv2.destroyAllWindows()
