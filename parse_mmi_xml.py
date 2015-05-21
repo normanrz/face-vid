@@ -15,41 +15,6 @@ import xml.etree.ElementTree as ET
 import os, cv2, sys
 import numpy as np
 
-# Override method of extract_frame.py
-def read_video(video, metadata):
-
-    # read video
-    frames = []
-    cap = cv2.VideoCapture(video)
-    frame_count = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
-
-    # only grab & compute every x-th frame
-    relevant_frames = [frame for frame in metadata]
-
-    if cap.isOpened():
-
-        for i in range(0, frame_count):
-
-            if not i in relevant_frames:
-                # skip video frame without decoding
-                cap.grab()
-                continue
-            else:
-                # actually read a frame
-                returnValue, frame = cap.read()
-
-            if not returnValue:
-                break
-
-            image = preprocessMMI(frame)
-            frames.append(image)
-
-        cap.release()
-        return frames
-    else:
-        sys.exit("Error opening video file.")
-
-
 def parseXML(path):
 
   # Read and parse
@@ -74,30 +39,18 @@ def parseXML(path):
   return result
 
 # Override method of extract_frame.py
-def save_to_disk(output_path, metadata, frames_flows_gen, ):
-
-    i = 0
-
-    for frame, flow_x, flow_y in frames_flows_gen:
-
+def save_to_disk_with_facs(output_path, frames, name, frames_to_facs):
+    for i,frame in enumerate(frames):
       # name files according to their metadata
       frame_number = metadata.keys()[i]
       facs_units = metadata.values()[i]
-
       facs_string = "_".join(map(str,facs_units))
-      filename_postfix = "%s_%s" % (frame_number, facs_string)
-
-      cv2.imwrite(os.path.join(output_path, "frame-%s.png" % filename_postfix), frame)
-      cv2.imwrite(os.path.join(output_path, "flow-x-%s.png" % filename_postfix), flow_x)
-      cv2.imwrite(os.path.join(output_path, "flow-y-%s.png" % filename_postfix), flow_y)
-      i += 1
+      post_processed_frame = post_process_mmi(frame)
+      cv2.imwrite(os.path.join(output_path, "%s-%s_%s.png" % (name, frame_number, filename_postfix)), post_processed_frame)
 
 
-def post_process_mmi(frames_flows_gen):
-
-  # Resize image to 224x224 as used by Googlenet
-  for images in frames_flows_gen:
-    yield map(lambda x: cv2.resize(x, (230,230)), images)
+def post_process_mmi(frame):
+  return cv2.resize(frame, (230,230)), frames)
 
 
 def main():
@@ -120,10 +73,16 @@ def main():
   metadata = parseXML(metadata_file)
 
   # ready to rumble
-  frames = read_video(video_path, metadata)
+  framesGray, framesBGR = read_video(video_path, 1, metadata)
 
-  # 1. find faces 2. calc flow 3. save to disk
-  save_to_disk(output_path, metadata, post_process_mmi(flow_pass(face_pass(frames))))
+  face_pass_result = face_pass(framesGray, framesBGR)
+  if (face_pass_result)
+      croppedFramesGray, croppedFramesBGR = face_pass_result
+      framesHorizontalFlow, framesVerticalFlow = flow_pass_static(croppedFramesGray)
+      save_to_disk(output_path, croppedFramesBGR, "frame-bgr")
+      save_to_disk(output_path, croppedFramesGray, "frame-gray")
+      save_to_disk(output_path, framesHorizontalFlow, "flow-x")
+      save_to_disk(output_path, framesVerticalFlow, "flow-y")
 
   # exit
   cv2.destroyAllWindows()

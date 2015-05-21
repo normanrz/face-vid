@@ -37,22 +37,34 @@ def detect_face(image):
 def preprocessMMI(image):
 
     # turn into greyscale
-    img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    cv2.equalizeHist(img)
+    imageAsGray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    cv2.equalizeHist(imageAsGray)
 
-    return img
+    
+    imageAsYCrCb = cv2.cvtColor(image, cv2.COLOR_BGR2YCR_CB) #change the color image from BGR to YCrCb format
+    channels = cv2.split(imageAsYCrCb) #split the image into channels
+    channels[0] = cv2.equalizeHist(channels[0]) #equalize histogram on the 1st channel (Y)
+    imageWithEqualizedHist = cv2.merge(channels) #merge 3 channels including the modified 1st channel into one image
+    imageAsBGR = cv2.cvtColor(imageWithEqualizedHist, cv2.COLOR_YCR_CB2BGR) #change the color image from YCrCb to BGR format (to display image properly)
+    
+    return (imageAsGray,imageAsBGR)
 
 
-def read_video(video, max_frame_count):
+def read_video(video, max_frame_count, frame_to_facs={}):
 
     # read video
-    frames = []
+    framesGray = []
+    framesBGR = []
     cap = cv2.VideoCapture(video)
     frame_count = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
-
-    # only grab & compute every x-th frame
     stride = frame_count / float(max_frame_count)
-    relevant_frames = [int(i) for i in np.arange(0, frame_count, stride)]
+
+    # only grab & compute every x-th frame or known frames of interest
+    relevant_frames = []
+    if len(frame_to_facs) > 0:
+        relevant_frames = [frame for frame in frame_to_facs]
+    else:
+        relevant_frames = [int(i) for i in np.arange(0, frame_count, stride)]
 
     if cap.isOpened():
 
@@ -69,75 +81,66 @@ def read_video(video, max_frame_count):
             if not returnValue:
                 break
 
-            image = preprocessMMI(frame)
-            frames.append(image)
+            (imageAsGray, imageAsBGR) = preprocessMMI(frame)
+            framesGray.append(imageAsGray)
+            framesBGR.append(imageAsBGR)
 
         cap.release()
-        return frames
+        return (framesGray, framesBGR)
     else:
         sys.exit("Error opening video file.")
 
 
 # Invoke face detection, find largest cropping window and apply elliptical mask
-def face_pass(images):
+def face_pass(framesGray, framesBGR):
+    def crop_and_mask(frame, minX, minY, maxWidth, maxHeight):
+        cropped_frame = frame[minY : minY + maxHeight, minX : minX + maxWidth]
+
+        center = (int(maxWidth  * 0.5), int(maxHeight * 0.5))
+        axes = (int(maxWidth * 0.4), int(maxHeight * 0.5))
+
+        mask = np.zeros_like(cropped_frame)
+        cv2.ellipse(mask, center, axes, 0, 0, 360, (255, 255, 255), -1)
+
+        return np.bitwise_and(cropped_frame, mask)
 
     minX = minY = sys.maxint
     maxWidth = maxHeight = 0
 
-    for image in images:
+    for frame in framesGray:
 
         # image = cv2.imread(file)
-        (x, y, w, h) = detect_face(image)
+        (x, y, w, h) = detect_face(frame)
 
         minX = min(minX, x)
         minY = min(minY, y)
         maxWidth = max(maxWidth, w)
         maxHeight = max(maxHeight, h)
 
+    (map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesGray),
+     map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesBGR))
 
-    for image in images:
-
-        # crop image image to recognized face and apply elliptical mask
-        cropped_image = image[minY : minY + maxHeight, minX : minX + maxWidth]
-
-        center = (int(maxWidth  * 0.5), int(maxHeight * 0.5))
-        axes = (int(maxWidth * 0.4), int(maxHeight * 0.5))
-
-        mask = np.zeros_like(cropped_image)
-        cv2.ellipse(mask, center, axes, 0, 0, 360, (255, 255, 255), -1)
-
-        yield np.bitwise_and(cropped_image, mask)
-
+def calculateFlow(frame1, frame2):
+    flow = cv2.calcOpticalFlowFarneback(frame1, frame2,  0.5,  3,  15,  3,  2,  1.1,  0)
+    horz = cv2.convertScaleAbs(flow[..., 0], None, 128 / SCALE_FLOW, 128)
+    vert = cv2.convertScaleAbs(flow[..., 1], None, 128 / SCALE_FLOW, 128)
+    return horz, vert
 
 # Calculate the optical flow along the x and y axis
-def flow_pass(images):
+# always compares with the first image of the series
+def flow_pass_static(framesGray):
+    #TODO: might not be the flow we want, comparing only the first image to all others
+    first = framesGray[0]
+    return [calculateFlow(first, f) for f in framesGray]
 
-    # Make a copy of the first image, to compare with itself
-    # Why? We want as many flow difference images as frames: len(flow) = len(frames)
-    # I wish I could just peek here...  :-(
-    prev = images.next()
+# Calculate the optical flow along the x and y axis
+# always compares with the previous image in the series
+def flow_pass_continuous(framesGray):
+    return [calculateFlow(f1, f2) for f1,f2 in zip(framesGray[0]+framesGray, framesGray)]
 
-    for next in itertools.chain([prev], images):
-
-        # prev, next, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags[, flow]
-        flow = cv2.calcOpticalFlowFarneback(prev, next,  0.5,  3,  15,  3,  2,  1.1,  0)
-
-        horz = cv2.convertScaleAbs(flow[..., 0], None, 128 / SCALE_FLOW, 128)
-        vert = cv2.convertScaleAbs(flow[..., 1], None, 128 / SCALE_FLOW, 128)
-
-        yield next, horz, vert
-
-
-def save_to_disk(output_path, frames_flows_gen):
-
-    i = 0
-    for frame, flow_x, flow_y in frames_flows_gen:
-
-        cv2.imwrite(os.path.join(output_path, "frame_%s.png" % i), frame)
-        cv2.imwrite(os.path.join(output_path, "flow_x_%s.png" % i), flow_x)
-        cv2.imwrite(os.path.join(output_path, "flow_y_%s.png" % i), flow_y)
-        i += 1
-
+def save_to_disk(output_path, frames, name):
+    for i,frame in enumerate(frames):
+        cv2.imwrite(os.path.join(output_path, "%s_%s.png" % (name, i)), frame)
 
 def main():
 
@@ -156,10 +159,17 @@ def main():
         sys.exit("The specified <output_path> argument is not a valid directory")
 
     # ready to rumble
-    frames = read_video(video_path, max_frame_count)
+    framesGray, framesBGR = read_video(video_path, max_frame_count)
 
     # 1. find faces 2. calc flow 3. save to disk
-    save_to_disk(output_path, flow_pass(face_pass(frames)))
+    face_pass_result = face_pass(framesGray, framesBGR)
+    if (face_pass_result)
+        croppedFramesGray, croppedFramesBGR = face_pass_result
+        framesHorizontalFlow, framesVerticalFlow = flow_pass_static(croppedFramesGray)
+        save_to_disk(output_path, croppedFramesBGR, "frame-bgr")
+        save_to_disk(output_path, croppedFramesGray, "frame-gray")
+        save_to_disk(output_path, framesHorizontalFlow, "flow-x")
+        save_to_disk(output_path, framesVerticalFlow, "flow-y")
 
     # exit
     cv2.destroyAllWindows()
