@@ -3,7 +3,7 @@
 # Use this script the extract frames from the MMI Facial Expresssion DB.
 # Every n-th frame will be extracted. Frames will be processed in the following
 # manner:
-#   - converted to grey-scale
+# - converted to grey-scale
 #   - cropping to detected faces
 #   - black oval mask around face
 #   - save optical flow along x & y axis
@@ -21,6 +21,13 @@ faceCascade = cv2.CascadeClassifier(CLASSIFIER_PATH)
 
 # Do face detection and return the first face
 def detect_face(image):
+    faces = faceCascade.detectMultiScale(
+        image,
+        scaleFactor=1.1,
+        minNeighbors=5,
+        minSize=(30, 30),
+        flags=cv2.cv.CV_HAAR_SCALE_IMAGE
+    )
 
     faces = faceCascade.detectMultiScale(
         image,
@@ -35,6 +42,9 @@ def detect_face(image):
 
 # Special processing relevant for the MMI facial dataset
 def preprocessMMI(image):
+    # turn into greyscale
+    imageAsGray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    cv2.equalizeHist(imageAsGray)
 
     # turn into greyscale
     imageAsGray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -94,7 +104,6 @@ def face_pass(framesGray, framesBGR):
     maxWidth = maxHeight = 0
 
     for frame in framesGray:
-
         # image = cv2.imread(file)
         (x, y, w, h) = detect_face(frame)
 
@@ -104,15 +113,17 @@ def face_pass(framesGray, framesBGR):
         maxHeight = max(maxHeight, h)
 
     return (
-        map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesGray),
-        map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesBGR)
+    map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesGray),
+    map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesBGR)
     )
 
+
 def calculateFlow(frame1, frame2):
-    flow = cv2.calcOpticalFlowFarneback(frame1, frame2,  0.5,  3,  15,  3,  2,  1.1,  0)
+    flow = cv2.calcOpticalFlowFarneback(frame1, frame2, 0.5, 3, 15, 3, 2, 1.1, 0)
     horz = cv2.convertScaleAbs(flow[..., 0], None, 128 / SCALE_FLOW, 128)
     vert = cv2.convertScaleAbs(flow[..., 1], None, 128 / SCALE_FLOW, 128)
     return horz, vert
+
 
 # Calculate the optical flow along the x and y axis
 # always compares with the first image of the series
@@ -121,6 +132,7 @@ def flow_pass_static(framesGray):
     first = framesGray[0]
     flows = [calculateFlow(first, f) for f in framesGray]
     return [list(t) for t in zip(*flows)]
+
 
 # Calculate the optical flow along the x and y axis
 # always compares with the previous image in the series
@@ -132,7 +144,7 @@ def save_to_disk(output_path, frames, name, max_frame_count = 0):
 
     # only grab & compute every x-th frame or all if count == 0
     frame_count = len(frames)
-    stride = 0
+    stride = 1
     if max_frame_count > 0:
         stride = frame_count / float(max_frame_count)
 
@@ -142,8 +154,8 @@ def save_to_disk(output_path, frames, name, max_frame_count = 0):
         if not i in relevant_frames: continue
         cv2.imwrite(os.path.join(output_path, "%s_%s.png" % (name, i)), frame)
 
-def main():
 
+def main():
     if len(sys.argv) < 4:
         sys.exit("Usage: %s <max_frame_count> <path_to_video> <output_path>" % sys.argv[0])
 

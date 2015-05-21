@@ -15,8 +15,8 @@ import xml.etree.ElementTree as ET
 import os, cv2, sys
 import numpy as np
 
-def parseXML(path):
 
+def parseXML(path):
     # Read and parse
     tree = ET.parse(path)
     root = tree.getroot()
@@ -42,9 +42,7 @@ def parseXML(path):
 def save_to_disk_with_facs(output_path, frames, name, metadata):
 
     # only grab frames with FACS labels
-    print metadata
     relevant_frames = [i for i in metadata.keys()]
-    print relevant_frames
 
     for i, frame in enumerate(frames):
         if not i in relevant_frames: continue
@@ -53,6 +51,7 @@ def save_to_disk_with_facs(output_path, frames, name, metadata):
         frame_number = i
         facs_units = metadata.get(i)
         facs_string = "_".join(map(str,facs_units))
+
         post_processed_frame = post_process_mmi(frame)
         cv2.imwrite(os.path.join(output_path, "%s-%s_%s.png" % (name, frame_number, facs_string)), post_processed_frame)
 
@@ -62,7 +61,6 @@ def post_process_mmi(frame):
 
 
 def main():
-
     if len(sys.argv) < 3:
         sys.exit("Usage: %s <path_to_video> <output_path>" % sys.argv[0])
 
