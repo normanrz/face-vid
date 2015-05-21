@@ -97,7 +97,7 @@ def post_process_mmi(frames_flows_gen):
 
   # Resize image to 224x224 as used by Googlenet
   for images in frames_flows_gen:
-    yield map(lambda x: cv2.resize(x, (224,224)), images)
+    yield map(lambda x: cv2.resize(x, (230,230)), images)
 
 
 def main():
