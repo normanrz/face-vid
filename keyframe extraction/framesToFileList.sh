@@ -5,7 +5,7 @@ if [ -f $Output ]; then
   rm $Output
 fi
 
-for frameFile in `find . -name "frame*.png"`
+for frameFile in `find frames -name "frame*.png"`
 do
   fileOnly=$(basename $frameFile)
   fileWithoutEnding=${fileOnly%.png}
