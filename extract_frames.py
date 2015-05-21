@@ -102,9 +102,13 @@ def face_pass(framesGray, framesBGR):
 
     minX = minY = sys.maxint
     maxWidth = maxHeight = 0
+    i = 0
 
     for frame in framesGray:
-        # image = cv2.imread(file)
+
+        # only do face detection every 10 frames to save processing power
+        if not i % 10 == 0: continue
+
         (x, y, w, h) = detect_face(frame)
 
         minX = min(minX, x)
