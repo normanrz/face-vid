@@ -15,7 +15,7 @@ from __future__ import generators
 import cv2, os, sys, itertools
 import numpy as np
 
-CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_face.xml")
+CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_frontalface_alt.xml")
 SCALE_FLOW = 10
 faceCascade = cv2.CascadeClassifier(CLASSIFIER_PATH)
 
@@ -29,13 +29,11 @@ def detect_face(image):
         flags=cv2.cv.CV_HAAR_SCALE_IMAGE
     )
 
-    faces = faceCascade.detectMultiScale(
-        image,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(30, 30),
-        flags=cv2.cv.CV_HAAR_SCALE_IMAGE
-    )
+
+    # for (x, y, w, h) in faces:
+    #     cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    # cv2.imshow("sdfsdf", image)
+    # cv2.waitKey(0)
 
     # Only use first result
     return faces[0]
@@ -46,18 +44,13 @@ def preprocessMMI(image):
     imageAsGray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     cv2.equalizeHist(imageAsGray)
 
-    # turn into greyscale
-    imageAsGray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    cv2.equalizeHist(imageAsGray)
-
-
     imageAsYCrCb = cv2.cvtColor(image, cv2.COLOR_BGR2YCR_CB) #change the color image from BGR to YCrCb format
     channels = cv2.split(imageAsYCrCb) #split the image into channels
     channels[0] = cv2.equalizeHist(channels[0]) #equalize histogram on the 1st channel (Y)
     imageWithEqualizedHist = cv2.merge(channels) #merge 3 channels including the modified 1st channel into one image
     imageAsBGR = cv2.cvtColor(imageWithEqualizedHist, cv2.COLOR_YCR_CB2BGR) #change the color image from YCrCb to BGR format (to display image properly)
 
-    return (imageAsGray,imageAsBGR)
+    return (imageAsGray, imageAsBGR)
 
 
 def read_video(video):
@@ -107,7 +100,7 @@ def face_pass(framesGray, framesBGR):
     for frame in framesGray:
 
         # only do face detection every 10 frames to save processing power
-        if not i % 10 == 0: continue
+        if not (i % 10 == 0): continue
 
         (x, y, w, h) = detect_face(frame)
 
@@ -117,8 +110,8 @@ def face_pass(framesGray, framesBGR):
         maxHeight = max(maxHeight, h)
 
     return (
-    map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesGray),
-    map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesBGR)
+        map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesGray),
+        map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesBGR)
     )
 
 
