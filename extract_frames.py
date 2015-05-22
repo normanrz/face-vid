@@ -29,14 +29,7 @@ def detect_face(image):
         flags=cv2.cv.CV_HAAR_SCALE_IMAGE
     )
 
-
-    # for (x, y, w, h) in faces:
-    #     cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
-    # cv2.imshow("sdfsdf", image)
-    # cv2.waitKey(0)
-
-    # Only use first result
-    return faces[0]
+    return faces
 
 
 # Special processing relevant for the MMI facial dataset
@@ -83,7 +76,7 @@ def read_video(video):
 
 # Invoke face detection, find largest cropping window and apply elliptical mask
 def face_pass(framesGray, framesBGR):
-    def crop_and_mask(frame, minX, minY, maxWidth, maxHeight):
+    def crop_and_mask(frame, minX, minY, maxWidth, maxHeight, count):
         cropped_frame = frame[minY: minY + maxHeight, minX: minX + maxWidth]
 
         center = (int(maxWidth * 0.5), int(maxHeight * 0.5))
@@ -94,25 +87,57 @@ def face_pass(framesGray, framesBGR):
 
         return np.bitwise_and(cropped_frame, mask)
 
-    minX = minY = sys.maxint
-    maxWidth = maxHeight = 0
-    i = 0
+    def point_in_rect(point, rect):
+        return \
+            point["x"] > rect["minX"] and point["x"] < rect["minX"] + rect["maxWidth"] and \
+            point["y"] > rect["minY"] and point["y"] < rect["minY"] + rect["maxHeight"]
 
-    for frame in framesGray:
+    # Remember all faces, group faces that are within the same enclosing rectangle
+    def remember_face(face, known_faces):
+        (x, y, w, h) = face
+
+        if len(known_faces) == 0:
+            return [{
+                    "minX" : x,
+                    "minY" : y,
+                    "maxWidth" : w,
+                    "maxHeight" : h,
+                    "count" : 0
+                }]
+        else:
+            center_point = {
+                "x" : x + w / 2 ,
+                "y" : y + h / 2
+            }
+            head, tail = known_faces[0], known_faces[1:]
+            if point_in_rect(center_point, head):
+                return [{
+                        "minX" : min(head["minX"], x),
+                        "minY" : min(head["minY"], y),
+                        "maxWidth" : max(head["maxWidth"], w),
+                        "maxHeight" : max(head["maxHeight"], h),
+                        "count" : head["count"] + 1
+                    }] + tail
+            else:
+                return [head] + remember_face(face, tail)
+
+
+    known_faces = []
+    for i, frame in enumerate(framesGray):
 
         # only do face detection every 10 frames to save processing power
-        if not (i % 10 == 0): continue
+        if i % 10 <> 0:
+            continue
 
-        (x, y, w, h) = detect_face(frame)
+        # Find all faces
+        for face in detect_face(frame):
+            known_faces = remember_face(face, known_faces)
 
-        minX = min(minX, x)
-        minY = min(minY, y)
-        maxWidth = max(maxWidth, w)
-        maxHeight = max(maxHeight, h)
 
+    most_significant_face = max(known_faces, key=lambda x: x["count"])
     return (
-        map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesGray),
-        map(lambda f: crop_and_mask(f, minX, minY, maxWidth, maxHeight), framesBGR)
+        map(lambda f: crop_and_mask(f, **most_significant_face), framesGray),
+        map(lambda f: crop_and_mask(f, **most_significant_face), framesBGR)
     )
 
 
