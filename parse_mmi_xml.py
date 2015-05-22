@@ -38,9 +38,9 @@ def parseXML(path):
 
     return result
 
+
 # Override method of extract_frame.py
 def save_to_disk_with_facs(output_path, frames, name, metadata):
-
     # only grab frames with FACS labels
     relevant_frames = [i for i in metadata.keys()]
 
@@ -50,14 +50,14 @@ def save_to_disk_with_facs(output_path, frames, name, metadata):
         # name files according to their metadata
         frame_number = i
         facs_units = metadata.get(i)
-        facs_string = "_".join(map(str,facs_units))
+        facs_string = "_".join(map(str, facs_units))
 
         post_processed_frame = post_process_mmi(frame)
         cv2.imwrite(os.path.join(output_path, "%s-%s_%s.png" % (name, frame_number, facs_string)), post_processed_frame)
 
 
 def post_process_mmi(frame):
-    return cv2.resize(frame, (230,230))
+    return cv2.resize(frame, (230, 230))
 
 
 def main():
@@ -100,5 +100,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

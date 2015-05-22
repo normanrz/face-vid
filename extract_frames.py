@@ -38,23 +38,24 @@ def detect_face(image):
     # Only use first result
     return faces[0]
 
+
 # Special processing relevant for the MMI facial dataset
 def preprocessMMI(image):
     # turn into greyscale
     imageAsGray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     cv2.equalizeHist(imageAsGray)
 
-    imageAsYCrCb = cv2.cvtColor(image, cv2.COLOR_BGR2YCR_CB) #change the color image from BGR to YCrCb format
-    channels = cv2.split(imageAsYCrCb) #split the image into channels
-    channels[0] = cv2.equalizeHist(channels[0]) #equalize histogram on the 1st channel (Y)
-    imageWithEqualizedHist = cv2.merge(channels) #merge 3 channels including the modified 1st channel into one image
-    imageAsBGR = cv2.cvtColor(imageWithEqualizedHist, cv2.COLOR_YCR_CB2BGR) #change the color image from YCrCb to BGR format (to display image properly)
+    imageAsYCrCb = cv2.cvtColor(image, cv2.COLOR_BGR2YCR_CB)  # change the color image from BGR to YCrCb format
+    channels = cv2.split(imageAsYCrCb)  # split the image into channels
+    channels[0] = cv2.equalizeHist(channels[0])  # equalize histogram on the 1st channel (Y)
+    imageWithEqualizedHist = cv2.merge(channels)  # merge 3 channels including the modified 1st channel into one image
+    imageAsBGR = cv2.cvtColor(imageWithEqualizedHist,
+                              cv2.COLOR_YCR_CB2BGR)  # change the color image from YCrCb to BGR format (to display image properly)
 
     return (imageAsGray, imageAsBGR)
 
 
 def read_video(video):
-
     # read video
     framesGray = []
     framesBGR = []
@@ -83,9 +84,9 @@ def read_video(video):
 # Invoke face detection, find largest cropping window and apply elliptical mask
 def face_pass(framesGray, framesBGR):
     def crop_and_mask(frame, minX, minY, maxWidth, maxHeight):
-        cropped_frame = frame[minY : minY + maxHeight, minX : minX + maxWidth]
+        cropped_frame = frame[minY: minY + maxHeight, minX: minX + maxWidth]
 
-        center = (int(maxWidth  * 0.5), int(maxHeight * 0.5))
+        center = (int(maxWidth * 0.5), int(maxHeight * 0.5))
         axes = (int(maxWidth * 0.4), int(maxHeight * 0.5))
 
         mask = np.zeros_like(cropped_frame)
@@ -125,7 +126,7 @@ def calculateFlow(frame1, frame2):
 # Calculate the optical flow along the x and y axis
 # always compares with the first image of the series
 def flow_pass_static(framesGray):
-    #TODO: might not be the flow we want, comparing only the first image to all others
+    # TODO: might not be the flow we want, comparing only the first image to all others
     first = framesGray[0]
     flows = [calculateFlow(first, f) for f in framesGray]
     return [list(t) for t in zip(*flows)]
@@ -134,11 +135,11 @@ def flow_pass_static(framesGray):
 # Calculate the optical flow along the x and y axis
 # always compares with the previous image in the series
 def flow_pass_continuous(framesGray):
-    flows = [calculateFlow(f1, f2) for f1,f2 in zip(framesGray[0]+framesGray, framesGray)]
+    flows = [calculateFlow(f1, f2) for f1, f2 in zip(framesGray[0] + framesGray, framesGray)]
     return [list(t) for t in zip(*flows)]
 
-def save_to_disk(output_path, frames, name, max_frame_count = 0):
 
+def save_to_disk(output_path, frames, name, max_frame_count=0):
     # only grab & compute every x-th frame or all if count == 0
     frame_count = len(frames)
     stride = 1
@@ -190,5 +191,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
