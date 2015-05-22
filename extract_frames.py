@@ -29,6 +29,9 @@ def detect_face(image):
         flags=cv2.cv.CV_HAAR_SCALE_IMAGE
     )
 
+    if len(faces) == 0:
+        sys.exit()
+
     return faces
 
 
@@ -197,18 +200,16 @@ def main():
     framesGray, framesBGR = read_video(video_path)
 
     # 1. find faces 2. calc flow 3. save to disk
-    face_pass_result = face_pass(framesGray, framesBGR)
-    if face_pass_result:
-        croppedFramesGray, croppedFramesBGR = face_pass_result
-        optical_flows = flow_pass_static(croppedFramesGray)
+    croppedFramesGray, croppedFramesBGR = face_pass(framesGray, framesBGR)
+    optical_flows = flow_pass_static(croppedFramesGray)
 
-        static_flows = flow_pass_static(croppedFramesGray)
-        # continous_flows = flow_pass_continuous(croppedFramesGray)
+    static_flows = flow_pass_static(croppedFramesGray)
+    # continous_flows = flow_pass_continuous(croppedFramesGray)
 
-        save_to_disk(output_path, croppedFramesBGR, "frame-bgr", max_frame_count)
-        save_to_disk(output_path, croppedFramesGray, "frame-gray", max_frame_count)
-        save_to_disk(output_path, static_flows[0], "flow-x", max_frame_count)
-        save_to_disk(output_path, static_flows[1], "flow-y", max_frame_count)
+    save_to_disk(output_path, croppedFramesBGR, "frame-bgr", max_frame_count)
+    save_to_disk(output_path, croppedFramesGray, "frame-gray", max_frame_count)
+    save_to_disk(output_path, static_flows[0], "flow-x", max_frame_count)
+    save_to_disk(output_path, static_flows[1], "flow-y", max_frame_count)
 
     # exit
     cv2.destroyAllWindows()
