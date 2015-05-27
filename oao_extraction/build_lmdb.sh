@@ -1,14 +1,15 @@
 #!/bin/bash
 
 DB_NAME="MMI_OAO"
-FILELIST="filelist.txt"
+FILELIST="frames/filelist.txt"
 
 # Collect all Frames as Filelist
 if [ -f $FILELIST ]; then
   rm $FILELIST
 fi
 
-find frames -type f -iname 'frame-bgr*' | sed -r 's/^[^_]*_([0-9]+[A-Za-z]*)[\._].*$/\0 \1/g' >> $FILELIST
+#find frames -type f -iname 'frame-bgr*' | sed -r 's/^[^_]*_([0-9]+[A-Za-z]*)[\._].*$/\0 \1/g' >> $FILELIST
+python framesToFile_OAO.py frames
 
 # Write LMDB
 if [ -d $DB_NAME ]; then
