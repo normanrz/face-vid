@@ -16,5 +16,5 @@ if [ -d $DB_NAME ]; then
   rm -rf $DB_NAME
 fi
 
-$CAFFE_ROOT/build/tools/convert_imageset /opt/data_sets/mmi_oao_facs/ $FILELIST $DB_NAME --logtostderr=1
+$CAFFE_ROOT/build/tools/convert_imageset "" $FILELIST $DB_NAME --logtostderr=1
 

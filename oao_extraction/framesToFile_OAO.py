@@ -21,7 +21,7 @@ def get_all_filenames(root_dir,):
         if (filename.endswith(("jpeg", "jpg", "png"))):
           if re.search(FILENAME_RE, filename):
             absolute_file = os.path.join(parent_dir, filename)
-            filenames.append(filename)
+            filenames.append(absolute_file)
   return filenames
 
 
