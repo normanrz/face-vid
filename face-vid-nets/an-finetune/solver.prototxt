@@ -6,7 +6,7 @@ test_iter: 10
 # interval between tests
 test_interval: 100
 
-base_lr: 0.01
+base_lr: 0.001
 lr_policy: "step"
 gamma: 0.1
 stepsize: 100000
