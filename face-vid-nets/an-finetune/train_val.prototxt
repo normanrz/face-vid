@@ -12,8 +12,8 @@ layer {
     crop_size: 227
   }
   data_param {
-    source: "/opt/data_sets/mmi_oao_facs/MMI_OAO_LMDB"
-    batch_size: 62
+    source: "/opt/data_sets/mmi_oao_facs/MMI_OAO_TRAIN_S"
+    batch_size: 10
     backend: LMDB
   }
 }
@@ -30,7 +30,7 @@ layer {
     crop_size: 227
   }
   data_param {
-    source: "/opt/data_sets/mmi_oao_facs/MMI_OAO_LMDB"
+    source: "/opt/data_sets/mmi_oao_facs/MMI_OAO_TEST_S"
     batch_size: 16
     backend: LMDB
   }
@@ -299,16 +299,16 @@ layer {
   }
 }
 layer {
-  name: "fc7"
+  name: "fc7-facevid"
   type: "InnerProduct"
   bottom: "fc6"
   top: "fc7"
   param {
-    lr_mult: 1
+    lr_mult: 10
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 20
     decay_mult: 0
   }
   inner_product_param {

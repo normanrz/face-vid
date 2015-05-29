@@ -1,12 +1,12 @@
 net: "an-finetune/train_val.prototxt"
 
 # number of iterations per test
-test_iter: 10
+test_iter: 15
 
 # interval between tests
 test_interval: 100
 
-base_lr: 0.001
+base_lr: 0.0001
 lr_policy: "step"
 gamma: 0.1
 stepsize: 100000
@@ -15,5 +15,5 @@ max_iter: 450000
 momentum: 0.9
 weight_decay: 0.0005
 snapshot: 10000
-snapshot_prefix: "./snapshots/"
+snapshot_prefix: "snapshots/"
 solver_mode: GPU
