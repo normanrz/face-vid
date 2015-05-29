@@ -12,7 +12,7 @@ layer {
     crop_size: 227
   }
   data_param {
-    source: "../face-vid/data/mmi_train_lmdb"
+    source: "/opt/data_sets/mmi_oao_facs/MMI_OAO_LMDB"
     batch_size: 62
     backend: LMDB
   }
@@ -30,7 +30,7 @@ layer {
     crop_size: 227
   }
   data_param {
-    source: "../face-vid/data/mmi_test_lmdb"
+    source: "/opt/data_sets/mmi_oao_facs/MMI_OAO_LMDB"
     batch_size: 16
     backend: LMDB
   }
@@ -352,7 +352,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 1000
+    num_output: 37
     weight_filler {
       type: "gaussian"
       std: 0.01
