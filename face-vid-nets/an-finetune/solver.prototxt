@@ -1,4 +1,4 @@
-net: "train_val.prototxt"
+net: "an-finetune/train_val.prototxt"
 test_iter: 1000
 test_interval: 1000
 base_lr: 0.01
