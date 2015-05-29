@@ -35,7 +35,7 @@ def get_all_labels(filenames):
       labels[label] = 0
 
   # Assign integer label to FACS unit
-  i = 1
+  i = 0
   for label in natsorted(labels):
     labels[label] = i
     i += 1
