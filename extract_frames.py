@@ -14,10 +14,30 @@
 from __future__ import generators
 import cv2, os, sys, itertools
 import numpy as np
+from itertools import izip
 
 CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_frontalface_alt.xml")
 SCALE_FLOW = 10
 faceCascade = cv2.CascadeClassifier(CLASSIFIER_PATH)
+
+# A FrameSet represents a collection of frames for a named stream (e.g. 
+# "frame-gray", "static-flow-x") and a named process (e.g. "normal", "rotate3")
+class FrameSet:
+    def __init__(self, frames, streamName, processName = "normal"):
+        self.frames = frames
+        self.streamName = streamName
+        self.processName = processName
+
+    def map(self, f):
+        return FrameSet(map(f, self.frames), self.streamName, self.processName)
+
+    def newStream(self, frames, newStreamName):
+        return FrameSet(frames, newStreamName, self.processName)
+
+    def newProcess(self, frames, newProcessName):
+        return FrameSet(frames, self.streamName, newProcessName)
+
+
 
 # Do face detection and return the first face
 def detect_face(image):
@@ -72,7 +92,7 @@ def read_video(video):
             framesBGR.append(imageAsBGR)
 
         cap.release()
-        return (framesGray, framesBGR)
+        return (FrameSet(framesGray, "frame-gray"), FrameSet(framesBGR, "frame-bgr"))
     else:
         sys.exit("Error opening video file.")
 
@@ -126,7 +146,7 @@ def face_pass(framesGray, framesBGR):
 
 
     known_faces = []
-    for i, frame in enumerate(framesGray):
+    for i, frame in enumerate(framesGray.frames):
 
         # only do face detection every 10 frames to save processing power
         if i % 10 <> 0:
@@ -139,8 +159,8 @@ def face_pass(framesGray, framesBGR):
 
     most_significant_face = max(known_faces, key=lambda x: x["count"])
     return (
-        map(lambda f: crop_and_mask(f, **most_significant_face), framesGray),
-        map(lambda f: crop_and_mask(f, **most_significant_face), framesBGR)
+        framesGray.map(lambda f: crop_and_mask(f, **most_significant_face)),
+        framesBGR.map(lambda f: crop_and_mask(f, **most_significant_face))
     )
 
 
@@ -151,34 +171,59 @@ def calculateFlow(frame1, frame2):
     return horz, vert
 
 
+def multiply_frames(frameSet):
+    def rotate_frame(frame, angle):
+        rows = frame.shape[0]
+        cols = frame.shape[1]
+        rotMat = cv2.getRotationMatrix2D((rows / 2, cols / 2), angle, 1)
+        return cv2.warpAffine(frame, rotMat, (cols, rows))
+
+    def contrast_brightness(frame, gain, bias):
+        return np.array(np.fmax(np.fmin(gain * np.array(frame, dtype=np.float32) + bias, 255), 0), dtype=np.uint8)
+
+    yield frameSet
+    for i, angle in enumerate([0, -3, 3, -6, 6]):
+        rotatedFrames = [rotate_frame(frame, angle) for frame in frameSet.frames]
+        for j, gain in enumerate([0]):
+            for k, bias in enumerate([-40, -20, 0, 20]):
+                newFrames = [contrast_brightness(frame, 1.1 ** gain, bias) for frame in rotatedFrames]
+                yield frameSet.newProcess(newFrames, "multi%i-%i-%i" % (i, j, k))
+                
+
 # Calculate the optical flow along the x and y axis
 # always compares with the first image of the series
-def flow_pass_static(framesGray):
+def flow_pass_static(frameSet):
     # TODO: might not be the flow we want, comparing only the first image to all others
-    first = framesGray[0]
-    flows = [calculateFlow(first, f) for f in framesGray]
-    return [list(t) for t in zip(*flows)]
+    first = frameSet.frames[0]
+    flows = zip(*[calculateFlow(first, f) for f in frameSet.frames])
+    return (
+        frameSet.newStream(flows[0], "static-flow-x"), 
+        frameSet.newStream(flows[1], "static-flow-y")
+    )
 
 
 # Calculate the optical flow along the x and y axis
 # always compares with the previous image in the series
-def flow_pass_continuous(framesGray):
-    flows = [calculateFlow(f1, f2) for f1, f2 in zip(framesGray[0] + framesGray, framesGray)]
-    return [list(t) for t in zip(*flows)]
+def flow_pass_continuous(frameSet):
+    flows = zip(*[calculateFlow(f1, f2) for f1, f2 in zip(frameSet.frames[0] + frameSet.frames, frameSet.frames)])
+    return (
+        frameSet.newStream(flows[0], "cont-flow-x"), 
+        frameSet.newStream(flows[1], "cont-flow-y")
+    )
 
 
-def save_to_disk(output_path, frames, name, max_frame_count=0):
+def save_to_disk(output_path, frameSet, max_frame_count=0):
     # only grab & compute every x-th frame or all if count == 0
-    frame_count = len(frames)
+    frame_count = len(frameSet.frames)
     stride = 1
     if max_frame_count > 0:
         stride = frame_count / float(max_frame_count)
 
     relevant_frames = [int(i) for i in np.arange(0, frame_count, stride)]
 
-    for i, frame in enumerate(frames):
+    for i, frame in enumerate(frameSet.frames):
         if not i in relevant_frames: continue
-        cv2.imwrite(os.path.join(output_path, "%s_%s.png" % (name, i)), frame)
+        cv2.imwrite(os.path.join(output_path, "%s_%s_%s.png" % (frameSet.processName, frameSet.streamName, i)), frame)
 
 
 def main():
@@ -199,17 +244,18 @@ def main():
     # ready to rumble
     framesGray, framesBGR = read_video(video_path)
 
-    # 1. find faces 2. calc flow 3. save to disk
-    croppedFramesGray, croppedFramesBGR = face_pass(framesGray, framesBGR)
-    optical_flows = flow_pass_static(croppedFramesGray)
+    for framesGray, framesBGR in izip(multiply_frames(framesGray), multiply_frames(framesBGR)):
 
-    static_flows = flow_pass_static(croppedFramesGray)
-    # continous_flows = flow_pass_continuous(croppedFramesGray)
+        # 1. find faces 2. calc flow 3. save to disk
+        croppedFramesGray, croppedFramesBGR = face_pass(framesGray, framesBGR)
 
-    save_to_disk(output_path, croppedFramesBGR, "frame-bgr", max_frame_count)
-    save_to_disk(output_path, croppedFramesGray, "frame-gray", max_frame_count)
-    save_to_disk(output_path, static_flows[0], "flow-x", max_frame_count)
-    save_to_disk(output_path, static_flows[1], "flow-y", max_frame_count)
+        static_flows_x, static_flows_y = flow_pass_static(croppedFramesGray)
+        # continous_flows_x, continous_flows_y = flow_pass_continuous(croppedFramesGray)
+
+        save_to_disk(output_path, croppedFramesBGR, max_frame_count)
+        save_to_disk(output_path, croppedFramesGray, max_frame_count)
+        save_to_disk(output_path, static_flows_x, max_frame_count)
+        save_to_disk(output_path, static_flows_y, max_frame_count)
 
     # exit
     cv2.destroyAllWindows()

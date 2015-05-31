@@ -11,6 +11,7 @@ from __future__ import generators
 from extract_frames import *
 from collections import defaultdict
 from sortedcontainers import SortedDict
+from itertools import izip
 import xml.etree.ElementTree as ET
 import os, cv2, sys
 import numpy as np
@@ -40,11 +41,11 @@ def parseXML(path):
 
 
 # Override method of extract_frame.py
-def save_to_disk_with_facs(output_path, frames, name, metadata):
+def save_to_disk_with_facs(output_path, frameSet, metadata):
     # only grab frames with FACS labels
     relevant_frames = [i for i in metadata.keys()]
 
-    for i, frame in enumerate(frames):
+    for i, frame in enumerate(frameSet.frames):
         if not i in relevant_frames: continue
 
         # name files according to their metadata
@@ -53,7 +54,7 @@ def save_to_disk_with_facs(output_path, frames, name, metadata):
         facs_string = "_".join(map(str, facs_units))
 
         post_processed_frame = post_process_mmi(frame)
-        cv2.imwrite(os.path.join(output_path, "%s-%s_%s.png" % (name, frame_number, facs_string)), post_processed_frame)
+        cv2.imwrite(os.path.join(output_path, "%s_%s-%s_%s.png" % (frameSet.processName, frameSet.streamName, frame_number, facs_string)), post_processed_frame)
 
 
 def post_process_mmi(frame):
@@ -81,18 +82,20 @@ def main():
     # ready to rumble
     framesGray, framesBGR = read_video(video_path)
 
-    face_pass_result = face_pass(framesGray, framesBGR)
-    if face_pass_result:
-        croppedFramesGray, croppedFramesBGR = face_pass_result
-        static_flows = flow_pass_static(croppedFramesGray)
-        continous_flows = flow_pass_continuous(croppedFramesGray)
+    for framesGray, framesBGR in izip(multiply_frames(framesGray), multiply_frames(framesBGR)):
 
-        save_to_disk_with_facs(output_path, croppedFramesBGR, "frame-bgr", metadata)
-        save_to_disk_with_facs(output_path, croppedFramesGray, "frame-gray", metadata)
-        save_to_disk_with_facs(output_path, static_flows[0], "static-flow-x", metadata)
-        save_to_disk_with_facs(output_path, static_flows[1], "static-flow-y", metadata)
-        save_to_disk_with_facs(output_path, continous_flows[0], "cont-flow-x", metadata)
-        save_to_disk_with_facs(output_path, continous_flows[1], "cont-flow-y", metadata)
+        face_pass_result = face_pass(framesGray, framesBGR)
+        if face_pass_result:
+            croppedFramesGray, croppedFramesBGR = face_pass_result
+            static_flows_x, static_flows_y = flow_pass_static(croppedFramesGray)
+            continous_flows_x, continous_flows_y = flow_pass_continuous(croppedFramesGray)
+
+            save_to_disk_with_facs(output_path, croppedFramesBGR, metadata)
+            save_to_disk_with_facs(output_path, croppedFramesGray, metadata)
+            save_to_disk_with_facs(output_path, static_flows_x, metadata)
+            save_to_disk_with_facs(output_path, static_flows_y, metadata)
+            save_to_disk_with_facs(output_path, continous_flows_x, metadata)
+            save_to_disk_with_facs(output_path, continous_flows_y, metadata)
 
     # exit
     cv2.destroyAllWindows()
