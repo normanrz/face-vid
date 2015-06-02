@@ -220,20 +220,28 @@ layer {
   }
 }
 layer {
-  name: "fc7"
+  name: "fc7-facevid"
   type: "InnerProduct"
   bottom: "fc6"
   top: "fc7"
   param {
-    lr_mult: 1
+    lr_mult: 10
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 20
     decay_mult: 0
   }
   inner_product_param {
     num_output: 4096
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 0.1
+    }
   }
 }
 layer {
@@ -252,20 +260,28 @@ layer {
   }
 }
 layer {
-  name: "fc8"
+  name: "fc8-facevid"
   type: "InnerProduct"
   bottom: "fc7"
   top: "fc8"
   param {
-    lr_mult: 1
+    lr_mult: 10
     decay_mult: 1
   }
   param {
-    lr_mult: 2
+    lr_mult: 20
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 1000
+    num_output: 37
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
   }
 }
 layer {
