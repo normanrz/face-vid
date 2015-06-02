@@ -12,7 +12,7 @@
 #
 ###############################################################################
 from __future__ import generators
-import cv2, os, sys, itertools
+import cv2, os, sys, itertools, functools
 import numpy as np
 from itertools import izip
 
@@ -20,7 +20,7 @@ CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_fronta
 SCALE_FLOW = 10
 faceCascade = cv2.CascadeClassifier(CLASSIFIER_PATH)
 
-# A FrameSet represents a collection of frames for a named stream (e.g. 
+# A FrameSet represents a collection of frames for a named stream (e.g.
 # "frame-gray", "static-flow-x") and a named process (e.g. "normal", "rotate3")
 class FrameSet:
     def __init__(self, frames, streamName, processName = "normal"):
@@ -171,6 +171,7 @@ def calculateFlow(frame1, frame2):
     return horz, vert
 
 
+# Increase the dataset by adding some rotated and re-colored images
 def multiply_frames(frameSet):
     def rotate_frame(frame, angle):
         rows = frame.shape[0]
@@ -188,27 +189,31 @@ def multiply_frames(frameSet):
             for k, bias in enumerate([-40, -20, 0, 20]):
                 newFrames = [contrast_brightness(frame, 1.1 ** gain, bias) for frame in rotatedFrames]
                 yield frameSet.newProcess(newFrames, "multi%i-%i-%i" % (i, j, k))
-                
-
-# Calculate the optical flow along the x and y axis
-# always compares with the first image of the series
-def flow_pass_static(frameSet):
-    # TODO: might not be the flow we want, comparing only the first image to all others
-    first = frameSet.frames[0]
-    flows = zip(*[calculateFlow(first, f) for f in frameSet.frames])
-    return (
-        frameSet.newStream(flows[0], "static-flow-x"), 
-        frameSet.newStream(flows[1], "static-flow-y")
-    )
 
 
 # Calculate the optical flow along the x and y axis
-# always compares with the previous image in the series
-def flow_pass_continuous(frameSet):
+# always compares with the previous/next #x images in the series
+def flow_pass(frameSet):
+
+    sliding_window = 5
+
+    # Find the 10 frames around each flow image and stack them as a single 10channel blob
+    def stack_frames(flow_data, frame_number):
+
+	relevant_frames = range(frame_number - sliding_window, frame_number + sliding_window)
+	frames = map(lambda i: empty_frame if i < 0 or i >= len(flow_data) else flow_data[i], relevant_frames)
+	return cv2.merge(frames)
+
     flows = zip(*[calculateFlow(f1, f2) for f1, f2 in zip(frameSet.frames[0] + frameSet.frames, frameSet.frames)])
+    empty_frame = np.ones_like(flows[0][0]) * 128
+
+    stacked_flows  = map(lambda flow:
+	map(functools.partial(stack_frames, flow), range(0, len(flow)))
+    , flows)
+
     return (
-        frameSet.newStream(flows[0], "cont-flow-x"), 
-        frameSet.newStream(flows[1], "cont-flow-y")
+	frameSet.newStream(stacked_flows[0], "flow-x"),
+	frameSet.newStream(stacked_flows[1], "flow-y")
     )
 
 
@@ -249,13 +254,12 @@ def main():
         # 1. find faces 2. calc flow 3. save to disk
         croppedFramesGray, croppedFramesBGR = face_pass(framesGray, framesBGR)
 
-        static_flows_x, static_flows_y = flow_pass_static(croppedFramesGray)
-        # continous_flows_x, continous_flows_y = flow_pass_continuous(croppedFramesGray)
+	flows_x, flows_y = flow_pass(croppedFramesGray)
 
         save_to_disk(output_path, croppedFramesBGR, max_frame_count)
         save_to_disk(output_path, croppedFramesGray, max_frame_count)
-        save_to_disk(output_path, static_flows_x, max_frame_count)
-        save_to_disk(output_path, static_flows_y, max_frame_count)
+	save_to_disk(output_path, flows_x, max_frame_count)
+	save_to_disk(output_path, flows_y, max_frame_count)
 
     # exit
     cv2.destroyAllWindows()

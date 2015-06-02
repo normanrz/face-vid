@@ -87,15 +87,12 @@ def main():
         face_pass_result = face_pass(framesGray, framesBGR)
         if face_pass_result:
             croppedFramesGray, croppedFramesBGR = face_pass_result
-            static_flows_x, static_flows_y = flow_pass_static(croppedFramesGray)
-            continous_flows_x, continous_flows_y = flow_pass_continuous(croppedFramesGray)
+	    flows_x, flows_y = flow_pass(croppedFramesGray)
 
             save_to_disk_with_facs(output_path, croppedFramesBGR, metadata)
             save_to_disk_with_facs(output_path, croppedFramesGray, metadata)
-            save_to_disk_with_facs(output_path, static_flows_x, metadata)
-            save_to_disk_with_facs(output_path, static_flows_y, metadata)
-            save_to_disk_with_facs(output_path, continous_flows_x, metadata)
-            save_to_disk_with_facs(output_path, continous_flows_y, metadata)
+	    save_to_disk_with_facs(output_path, flows_x, metadata)
+	    save_to_disk_with_facs(output_path, flows_y, metadata)
 
     # exit
     cv2.destroyAllWindows()
