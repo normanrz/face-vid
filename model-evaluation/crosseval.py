@@ -31,7 +31,7 @@ def print_table(headers, data):
     print row_format.format("[sum]", *(row + [sum(row)]))
 
 # Example:
-# python crosseval.py --proto an-finetune/deploy.prototxt --model snapshots/_iter_50000.caffemodel --lmdb MMI_OAO_TEST#
+# python crosseval.py --proto examples/deploy.prototxt --model snapshots/_iter_50000.caffemodel --lmdb MY_LMDB
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--proto', type=str, required=True)
@@ -81,3 +81,4 @@ if __name__ == "__main__":
     print "true label vs predicted label"
 
     print_table(labels_set, matrix)
+

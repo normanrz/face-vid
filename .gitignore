@@ -4,3 +4,8 @@
 data
 .idea/
 *.iml
+*.log
+*.log.test
+*.log.train
+face-vid-nets/snapshots/
+face-vid-nets/results/

@@ -12,7 +12,7 @@ layer {
     crop_size: 227
   }
   data_param {
-    source: "/opt/data_sets/mmi_oao_facs/MMI_OAO_TRAIN_S"
+    source: "/opt/data_sets/mmi_oao_facs/MMI_OAO_3_TRAIN"
     batch_size: 10
     backend: LMDB
   }
@@ -30,7 +30,7 @@ layer {
     crop_size: 227
   }
   data_param {
-    source: "/opt/data_sets/mmi_oao_facs/MMI_OAO_TEST_S"
+    source: "/opt/data_sets/mmi_oao_facs/MMI_OAO_3_TEST"
     batch_size: 16
     backend: LMDB
   }
