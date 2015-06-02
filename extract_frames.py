@@ -12,7 +12,7 @@
 #
 ###############################################################################
 from __future__ import generators
-import cv2, os, sys, itertools, functools
+import cv2, os, sys, itertools, functools, h5py
 import numpy as np
 from itertools import izip
 
@@ -200,35 +200,48 @@ def flow_pass(frameSet):
     # Find the 10 frames around each flow image and stack them as a single 10channel blob
     def stack_frames(flow_data, frame_number):
 
-	relevant_frames = range(frame_number - sliding_window, frame_number + sliding_window)
-	frames = map(lambda i: empty_frame if i < 0 or i >= len(flow_data) else flow_data[i], relevant_frames)
-	return cv2.merge(frames)
+        relevant_frames = range(frame_number - sliding_window, frame_number + sliding_window)
+        frames = map(lambda i: empty_frame if i < 0 or i >= len(flow_data) else flow_data[i], relevant_frames)
+        return cv2.merge(frames)
 
     flows = zip(*[calculateFlow(f1, f2) for f1, f2 in zip(frameSet.frames[0] + frameSet.frames, frameSet.frames)])
     empty_frame = np.ones_like(flows[0][0]) * 128
 
     stacked_flows  = map(lambda flow:
-	map(functools.partial(stack_frames, flow), range(0, len(flow)))
+        map(functools.partial(stack_frames, flow), range(0, len(flow)))
     , flows)
 
     return (
-	frameSet.newStream(stacked_flows[0], "flow-x"),
-	frameSet.newStream(stacked_flows[1], "flow-y")
+        frameSet.newStream(stacked_flows[0], "flow-x"),
+        frameSet.newStream(stacked_flows[1], "flow-y")
     )
 
 
-def save_to_disk(output_path, frameSet, max_frame_count=0):
+def save_to_disk(output_path, frameSets):
+
+    for frameSet in frameSets:
+        for i, frame in enumerate(frameSet.frames):
+            cv2.imwrite(os.path.join(output_path, "%s_%s_%s.png" % (frameSet.processName, frameSet.streamName, i)), frame)
+
+
+def save_as_hdf5():
+    return True
+
+
+def reduce_dataset(max_frame_count, frameSets):
+
     # only grab & compute every x-th frame or all if count == 0
-    frame_count = len(frameSet.frames)
-    stride = 1
-    if max_frame_count > 0:
-        stride = frame_count / float(max_frame_count)
+    def filter_relevant_frames(frameSet):
+        frame_count = len(frameSet.frames)
+        if max_frame_count > 0:
+            stride = frame_count / float(max_frame_count)
+        else:
+            stride = 1
 
-    relevant_frames = [int(i) for i in np.arange(0, frame_count, stride)]
+        filtered_frames = [frameSet.frames[int(i)] for i in np.arange(0, frame_count, stride)]
+        return FrameSet(filtered_frames, frameSet.streamName, frameSet.processName)
 
-    for i, frame in enumerate(frameSet.frames):
-        if not i in relevant_frames: continue
-        cv2.imwrite(os.path.join(output_path, "%s_%s_%s.png" % (frameSet.processName, frameSet.streamName, i)), frame)
+    return tuple(map(filter_relevant_frames, frameSets))
 
 
 def main():
@@ -252,14 +265,14 @@ def main():
     for framesGray, framesBGR in izip(multiply_frames(framesGray), multiply_frames(framesBGR)):
 
         # 1. find faces 2. calc flow 3. save to disk
-        croppedFramesGray, croppedFramesBGR = face_pass(framesGray, framesBGR)
+        frames = face_pass(framesGray, framesBGR)
+        flows = flow_pass(frames[0])
 
-	flows_x, flows_y = flow_pass(croppedFramesGray)
+        frames = reduce_dataset(max_frame_count, frames)
+        flows = reduce_dataset(max_frame_count, flows)
 
-        save_to_disk(output_path, croppedFramesBGR, max_frame_count)
-        save_to_disk(output_path, croppedFramesGray, max_frame_count)
-	save_to_disk(output_path, flows_x, max_frame_count)
-	save_to_disk(output_path, flows_y, max_frame_count)
+        save_to_disk(output_path, frames)
+        #save_to_disk(output_path, flows)
 
     # exit
     cv2.destroyAllWindows()
