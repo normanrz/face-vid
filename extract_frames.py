@@ -225,7 +225,56 @@ def save_to_disk(output_path, frameSets):
 
 
 def save_as_hdf5():
-    return True
+    h5file = h5py.File("test.hdf5", "w")
+
+    try:
+	# get the datasets
+	data_dataset = h5file["data"]
+	label_dataset = h5file["label"]
+	# set the start indices
+	start_data = data_dataset.shape[-1]
+	start_label = label_dataset.shape[-1]
+	# resize the datasets so that the new data can fit in
+	data_dataset.resize(start_data + data.shape[-1], 3)
+	label_dataset.resize(start_data + labels.shape[-1], 1)
+    except KeyError:
+	# create new datasets in hdf5 file
+	data_shape = data.shape
+	data_dataset = h5file.create_dataset(
+	    "/data",
+	    shape=data_shape,
+	    maxshape=(
+		data_shape[0],
+		data_shape[1],
+		data_shape[2],
+		None,
+	    ),
+	    dtype="f",
+	    chunks=True,
+	)
+	label_shape = labels.shape
+	label_dataset = h5file.create_dataset(
+	    "/label",
+	    shape=label_shape,
+	    maxshape=(
+		label_shape[0],
+		None,
+	    ),
+	    dtype="f",
+	    chunks=True,
+	)
+	# set the start indices in fourth dimension
+	start_data = 0
+	start_label = 0
+
+    if label_dataset is not None and data_dataset is not None:
+	# write the given data into the hdf5 file
+	data_dataset[:, :, :, start_data:start_data + data.shape[-1]] = data
+	label_dataset[:, start_label:start_label + labels.shape[-1]] = labels
+
+    finally
+	h5file.flush()
+	h5file.close()
 
 
 def reduce_dataset(max_frame_count, frameSets):
@@ -239,7 +288,7 @@ def reduce_dataset(max_frame_count, frameSets):
             stride = 1
 
         filtered_frames = [frameSet.frames[int(i)] for i in np.arange(0, frame_count, stride)]
-        return FrameSet(filtered_frames, frameSet.streamName, frameSet.processName)
+	return frameSet.newStream(filtered_frames, frameSet.streamName)
 
     return tuple(map(filter_relevant_frames, frameSets))
 
