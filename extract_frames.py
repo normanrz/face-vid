@@ -19,6 +19,10 @@ from itertools import izip
 
 CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_frontalface_alt.xml")
 SCALE_FLOW = 10
+NUMBER_OF_LABELS = 37
+
+label_mapping = dict()
+label_mapping_index = 0
 faceCascade = cv2.CascadeClassifier(CLASSIFIER_PATH)
 
 # A FrameSet represents a collection of frames for a named stream (e.g.
@@ -42,13 +46,25 @@ class FrameSet:
 
 
 def read_labels(path, length):
+
+    def map_label(label):
+        global label_mapping_index, label_mapping
+
+        mapped_label = label_mapping.get(label)
+        if mapped_label == None:
+            label_mapping[label] = label_mapping_index
+            mapped_label = label_mapping_index
+            label_mapping_index += 1
+
+        return mapped_label
+
     # Read and parse
     tree = ET.parse(path)
     root = tree.getroot()
 
     action_units = root.findall(".//ActionUnit")
 
-    labels = [[] for i in range(0, length)]
+    labels = np.zeros([length, NUMBER_OF_LABELS])
     for au in action_units:
 
         facs_code = au.get("Number")
@@ -56,10 +72,8 @@ def read_labels(path, length):
         for marker in au.findall("Marker"):
             frame_number = int(marker.get("Frame"))
 
-            frames = labels[frame_number]
-            frames.append(facs_code)
-
-            labels[frame_number] = frames
+            label = map_label(facs_code)
+            labels[frame_number, label] = 1
 
     return labels
 
@@ -253,49 +267,51 @@ def save_to_disk(output_path, frameSets):
             cv2.imwrite(os.path.join(output_path, "%s_%s_%s.png" % (frameSet.processName, frameSet.streamName, i)), frame)
 
 
-def save_as_hdf5(output_path, frameSets):
+def save_as_hdf5(output_path, frameSet, db_name):
 
-    db_path = os.path.join(output_path, "mmi_oao.hdf5")
-    h5file = h5py.File(db_path, "w")
+    try:
+        db_path = os.path.join(output_path, db_name)
+        h5file = h5py.File(db_path, "a")
 
-    for frameSet in frameSets:
-
-        data_name = frameSet.streamName
-        frames = np.array(frameSet.frames)
-        labels = np.array(frameSet.labels)
+        frames = np.concatenate(frameSet.frames, 3)
+        labels = np.concatenate(frameSet.labels, 1)
 
         try:
             # get the datasets
-            data_dataset = h5file[data_name]
+            frames_dataset = h5file["data"]
             label_dataset = h5file["label"]
+
             # set the start indices
-            start_data = data_dataset.shape[-1]
+            start_data = frames_dataset.shape[-1]
             start_label = label_dataset.shape[-1]
+
             # resize the datasets so that the new data can fit in
-            data_dataset.resize(start_data + data.shape[-1], 3)
+            frames_dataset.resize(start_data + frames.shape[-1], 3)
             label_dataset.resize(start_data + labels.shape[-1], 1)
+
         except KeyError:
             # create new datasets in hdf5 file
             data_shape = frames.shape
-            data_dataset = h5file.create_dataset(
-                data_name,
+            frames_dataset = h5file.create_dataset(
+                "data",
                 shape=data_shape,
                 maxshape=(
-                data_shape[0],
-                data_shape[1],
-                data_shape[2],
-                None,
+                    data_shape[0],
+                    data_shape[1],
+                    data_shape[2],
+                    None,
                 ),
                 dtype="f",
                 chunks=True,
             )
+
             label_shape = labels.shape
             label_dataset = h5file.create_dataset(
                 "/label",
                 shape=label_shape,
                 maxshape=(
-                label_shape[0],
-                None,
+                    label_shape[0],
+                    None,
                 ),
                 dtype="f",
                 chunks=True,
@@ -304,14 +320,15 @@ def save_as_hdf5(output_path, frameSets):
             start_data = 0
             start_label = 0
 
-            if label_dataset is not None and data_dataset is not None:
-                # write the given data into the hdf5 file
-                data_dataset[:, :, :, start_data:start_data + data.shape[-1]] = frames
-                label_dataset[:, start_label:start_label + labels.shape[-1]] = labels
+        if label_dataset is not None and frames_dataset is not None:
+            # write the given data into the hdf5 file
+            frames_dataset[:, :, :, start_data:start_data + frames.shape[-1]] = frames
+            label_dataset[:, start_label:start_label + labels.shape[-1]] = labels
 
-        finally:
-            h5file.flush()
-            h5file.close()
+    finally:
+
+        h5file.flush()
+        h5file.close()
 
 
 def reduce_dataset(frameSets):
@@ -320,13 +337,22 @@ def reduce_dataset(frameSets):
     def filter_relevant_frames(frameSet):
 
         frame_count = len(frameSet.frames)
-        filtered_frames = [frameSet.frames[i] for i in range(0, frame_count) if len(frameSet.labels[i]) > 0]
-        filtered_labels = [frameSet.labels[i] for i in range(0, frame_count) if len(frameSet.labels[i]) > 0]
+        filtered_frames = [np.expand_dims(frameSet.frames[i], 3) for i in range(0, frame_count) if len(frameSet.labels[i]) > 0]
+        filtered_labels = [np.expand_dims(frameSet.labels[i], 1) for i in range(0, frame_count) if len(frameSet.labels[i]) > 0]
+
 
         return frameSet.newStream(filtered_frames, frameSet.streamName, filtered_labels)
 
     return tuple(map(filter_relevant_frames, frameSets))
 
+
+def post_process(frameSets):
+
+    def resize(frameSet):
+        resized_frames = map(lambda f: cv2.resize(f, (230, 230)), frameSet.frames)
+        return frameSet.newStream(resized_frames, frameSet.streamName)
+
+    return map(resize, frameSets)
 
 def main():
     if len(sys.argv) < 3:
@@ -351,16 +377,17 @@ def main():
         frames = face_pass(framesGray, framesBGR)
         flows = flow_pass(frames[0])
 
+        frames = post_process(frames)
+        flows = post_process(flows)
+
         frames = reduce_dataset(frames)
         flows = reduce_dataset(flows)
-
-        # Pre-processing? resizing?
 
         # save_to_disk(output_path, frames)
         # save_to_disk(output_path, flows)
 
-        save_as_hdf5(output_path, frames)
-        # save_as_hdf5(output_path, flows)
+        save_as_hdf5(output_path, frames[1], "framesBGR")
+        map(lambda flow: save_as_hdf5(output_path, flow, "flows"), flows)
 
     # exit
     cv2.destroyAllWindows()
