@@ -12,10 +12,8 @@
 #
 ###############################################################################
 from __future__ import generators
-import cv2, os, sys, itertools, functools, h5py
-import xml.etree.ElementTree as ET
-import numpy as np
-from itertools import izip
+import cv2, os, sys, itertools, functools, h5py, numpy as np, xml.etree.ElementTree as ET
+from natsort import natsorted
 
 CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_frontalface_alt.xml")
 SCALE_FLOW = 10
@@ -303,6 +301,7 @@ def save_as_hdf5(output_path, frameSet, db_name):
                 ),
                 dtype="f",
                 chunks=True,
+                compression="gzip"
             )
 
             label_shape = labels.shape
@@ -315,6 +314,7 @@ def save_as_hdf5(output_path, frameSet, db_name):
                 ),
                 dtype="f",
                 chunks=True,
+                compression="gzip"
             )
             # set the start indices in fourth dimension
             start_data = 0
@@ -340,7 +340,6 @@ def reduce_dataset(frameSets):
         filtered_frames = [np.expand_dims(frameSet.frames[i], 3) for i in range(0, frame_count) if len(frameSet.labels[i]) > 0]
         filtered_labels = [np.expand_dims(frameSet.labels[i], 1) for i in range(0, frame_count) if len(frameSet.labels[i]) > 0]
 
-
         return frameSet.newStream(filtered_frames, frameSet.streamName, filtered_labels)
 
     return tuple(map(filter_relevant_frames, frameSets))
@@ -354,40 +353,65 @@ def post_process(frameSets):
 
     return map(resize, frameSets)
 
+
+def get_all_videos(root_dir):
+
+  # read the content of the root directory and filter all directories
+  directory_names = map(lambda f: os.path.join(root_dir, f), os.listdir(root_dir))
+  directories = filter(os.path.isdir, directory_names)
+
+  filenames = []
+
+  for directory in directories:
+    for parent_dir, sub_dirs, files in os.walk(directory):
+
+      # sort files
+      for filename in natsorted(files):
+        if filename.endswith("avi"):
+            absolute_file = os.path.join(root_dir, parent_dir, filename)
+            filenames.append(absolute_file)
+  return filenames
+
+
 def main():
     if len(sys.argv) < 3:
-        sys.exit("Usage: %s <path_to_video> <output_path>" % sys.argv[0])
+        sys.exit("Usage: %s <path_to_video_directory> <output_path>" % sys.argv[0])
 
     # read path to image as command argument
     video_path = os.path.abspath(sys.argv[1])
     output_path = os.path.abspath(sys.argv[2])
 
-    if not os.path.isfile(video_path):
-        sys.exit("The specified <path_to_video> argument is not a valid filename")
+    if not os.path.isdir(video_path):
+        sys.exit("The specified <path_to_video_directory> argument is not a valid directory")
 
     if not os.path.isdir(output_path):
         sys.exit("The specified <output_path> argument is not a valid directory")
 
-    # ready to rumble
-    framesGray, framesBGR = read_video(video_path)
 
-    for framesGray, framesBGR in izip(multiply_frames(framesGray), multiply_frames(framesBGR)):
+    for video in get_all_videos(video_path):
 
-        # 1. find faces 2. calc flow 3. save to disk
-        frames = face_pass(framesGray, framesBGR)
-        flows = flow_pass(frames[0])
+        print "Processing video: %s\n" % video
 
-        frames = post_process(frames)
-        flows = post_process(flows)
+        # ready to rumble
+        framesGray, framesBGR = read_video(video)
 
-        frames = reduce_dataset(frames)
-        flows = reduce_dataset(flows)
+        for framesGray, framesBGR in itertools.izip(multiply_frames(framesGray), multiply_frames(framesBGR)):
 
-        # save_to_disk(output_path, frames)
-        # save_to_disk(output_path, flows)
+            # 1. find faces 2. calc flow 3. save to disk
+            frames = face_pass(framesGray, framesBGR)
+            flows = flow_pass(frames[0])
 
-        save_as_hdf5(output_path, frames[1], "framesBGR")
-        map(lambda flow: save_as_hdf5(output_path, flow, "flows"), flows)
+            frames = post_process(frames)
+            flows = post_process(flows)
+
+            frames = reduce_dataset(frames)
+            flows = reduce_dataset(flows)
+
+            # save_to_disk(output_path, frames)
+            # save_to_disk(output_path, flows)
+
+            save_as_hdf5(output_path, frames[1], "framesBGR")
+            map(lambda flow: save_as_hdf5(output_path, flow, "flows"), flows)
 
     # exit
     cv2.destroyAllWindows()
