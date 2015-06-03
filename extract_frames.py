@@ -13,6 +13,7 @@
 ###############################################################################
 from __future__ import generators
 import cv2, os, sys, itertools, functools, h5py
+import xml.etree.ElementTree as ET
 import numpy as np
 from itertools import izip
 
@@ -23,21 +24,44 @@ faceCascade = cv2.CascadeClassifier(CLASSIFIER_PATH)
 # A FrameSet represents a collection of frames for a named stream (e.g.
 # "frame-gray", "static-flow-x") and a named process (e.g. "normal", "rotate3")
 class FrameSet:
-    def __init__(self, frames, streamName, processName = "normal"):
+    def __init__(self, frames, streamName, processName, labels):
         self.frames = frames
         self.streamName = streamName
         self.processName = processName
+        self.labels = labels
 
     def map(self, f):
-        return FrameSet(map(f, self.frames), self.streamName, self.processName)
+        return FrameSet(map(f, self.frames), self.streamName, self.processName, self.labels)
 
-    def newStream(self, frames, newStreamName):
-        return FrameSet(frames, newStreamName, self.processName)
+    def newStream(self, frames, newStreamName, newLabels=None):
+        labels = newLabels if newLabels else self.labels
+        return FrameSet(frames, newStreamName, self.processName, labels)
 
     def newProcess(self, frames, newProcessName):
-        return FrameSet(frames, self.streamName, newProcessName)
+        return FrameSet(frames, self.streamName, newProcessName, self.labels)
 
 
+def read_labels(path, length):
+    # Read and parse
+    tree = ET.parse(path)
+    root = tree.getroot()
+
+    action_units = root.findall(".//ActionUnit")
+
+    labels = [[] for i in range(0, length)]
+    for au in action_units:
+
+        facs_code = au.get("Number")
+
+        for marker in au.findall("Marker"):
+            frame_number = int(marker.get("Frame"))
+
+            frames = labels[frame_number]
+            frames.append(facs_code)
+
+            labels[frame_number] = frames
+
+    return labels
 
 # Do face detection and return the first face
 def detect_face(image):
@@ -78,6 +102,7 @@ def read_video(video):
     cap = cv2.VideoCapture(video)
     frame_count = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
 
+
     if cap.isOpened():
 
         for i in range(0, frame_count):
@@ -92,7 +117,11 @@ def read_video(video):
             framesBGR.append(imageAsBGR)
 
         cap.release()
-        return (FrameSet(framesGray, "frame-gray"), FrameSet(framesBGR, "frame-bgr"))
+
+        label_file = video.replace(".avi", "-oao_aucs.xml")
+        labels = read_labels(label_file, len(framesBGR))
+
+        return (FrameSet(framesGray, "frame-gray", "normal", labels), FrameSet(framesBGR, "frame-bgr", "nromal", labels))
     else:
         sys.exit("Error opening video file.")
 
@@ -228,79 +257,76 @@ def save_as_hdf5():
     h5file = h5py.File("test.hdf5", "w")
 
     try:
-	# get the datasets
-	data_dataset = h5file["data"]
-	label_dataset = h5file["label"]
-	# set the start indices
-	start_data = data_dataset.shape[-1]
-	start_label = label_dataset.shape[-1]
-	# resize the datasets so that the new data can fit in
-	data_dataset.resize(start_data + data.shape[-1], 3)
-	label_dataset.resize(start_data + labels.shape[-1], 1)
+        # get the datasets
+        data_dataset = h5file["data"]
+        label_dataset = h5file["label"]
+        # set the start indices
+        start_data = data_dataset.shape[-1]
+        start_label = label_dataset.shape[-1]
+        # resize the datasets so that the new data can fit in
+        data_dataset.resize(start_data + data.shape[-1], 3)
+        label_dataset.resize(start_data + labels.shape[-1], 1)
     except KeyError:
-	# create new datasets in hdf5 file
-	data_shape = data.shape
-	data_dataset = h5file.create_dataset(
-	    "/data",
-	    shape=data_shape,
-	    maxshape=(
-		data_shape[0],
-		data_shape[1],
-		data_shape[2],
-		None,
-	    ),
-	    dtype="f",
-	    chunks=True,
-	)
-	label_shape = labels.shape
-	label_dataset = h5file.create_dataset(
-	    "/label",
-	    shape=label_shape,
-	    maxshape=(
-		label_shape[0],
-		None,
-	    ),
-	    dtype="f",
-	    chunks=True,
-	)
-	# set the start indices in fourth dimension
-	start_data = 0
-	start_label = 0
+        # create new datasets in hdf5 file
+        data_shape = data.shape
+        data_dataset = h5file.create_dataset(
+            "/data",
+            shape=data_shape,
+            maxshape=(
+            data_shape[0],
+            data_shape[1],
+            data_shape[2],
+            None,
+            ),
+            dtype="f",
+            chunks=True,
+        )
+        label_shape = labels.shape
+        label_dataset = h5file.create_dataset(
+            "/label",
+            shape=label_shape,
+            maxshape=(
+            label_shape[0],
+            None,
+            ),
+            dtype="f",
+            chunks=True,
+        )
+        # set the start indices in fourth dimension
+        start_data = 0
+        start_label = 0
 
-    if label_dataset is not None and data_dataset is not None:
-	# write the given data into the hdf5 file
-	data_dataset[:, :, :, start_data:start_data + data.shape[-1]] = data
-	label_dataset[:, start_label:start_label + labels.shape[-1]] = labels
+        if label_dataset is not None and data_dataset is not None:
+            # write the given data into the hdf5 file
+            data_dataset[:, :, :, start_data:start_data + data.shape[-1]] = data
+            label_dataset[:, start_label:start_label + labels.shape[-1]] = labels
 
-    finally
-	h5file.flush()
-	h5file.close()
+    finally:
+        h5file.flush()
+        h5file.close()
 
 
-def reduce_dataset(max_frame_count, frameSets):
+def reduce_dataset(frameSets):
 
-    # only grab & compute every x-th frame or all if count == 0
+    # only use frames that have labels
     def filter_relevant_frames(frameSet):
-        frame_count = len(frameSet.frames)
-        if max_frame_count > 0:
-            stride = frame_count / float(max_frame_count)
-        else:
-            stride = 1
 
-        filtered_frames = [frameSet.frames[int(i)] for i in np.arange(0, frame_count, stride)]
-	return frameSet.newStream(filtered_frames, frameSet.streamName)
+        frame_count = len(frameSet.frames)
+        filtered_frames = [frameSet.frames[i] for i in range(0, frame_count) if len(frameSet.labels[i]) > 0]
+        filtered_labels = [frameSet.labels[i] for i in range(0, frame_count) if len(frameSet.labels[i]) > 0]
+
+        return frameSet.newStream(filtered_frames, frameSet.streamName, filtered_labels)
 
     return tuple(map(filter_relevant_frames, frameSets))
 
 
 def main():
-    if len(sys.argv) < 4:
-        sys.exit("Usage: %s <max_frame_count> <path_to_video> <output_path>" % sys.argv[0])
+    if len(sys.argv) < 3:
+        sys.exit("Usage: %s <path_to_video> <output_path>" % sys.argv[0])
 
     # read path to image as command argument
-    max_frame_count = int(sys.argv[1])
-    video_path = os.path.abspath(sys.argv[2])
-    output_path = os.path.abspath(sys.argv[3])
+    video_path = os.path.abspath(sys.argv[1])
+    output_path = os.path.abspath(sys.argv[2])
 
     if not os.path.isfile(video_path):
         sys.exit("The specified <path_to_video> argument is not a valid filename")
@@ -317,8 +343,8 @@ def main():
         frames = face_pass(framesGray, framesBGR)
         flows = flow_pass(frames[0])
 
-        frames = reduce_dataset(max_frame_count, frames)
-        flows = reduce_dataset(max_frame_count, flows)
+        frames = reduce_dataset(frames)
+        flows = reduce_dataset(flows)
 
         save_to_disk(output_path, frames)
         #save_to_disk(output_path, flows)
