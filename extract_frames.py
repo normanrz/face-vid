@@ -12,7 +12,7 @@
 #
 ###############################################################################
 from __future__ import generators
-import cv2, os, sys, itertools, functools, h5py, numpy as np, xml.etree.ElementTree as ET
+import cv2, os, sys, itertools, functools, h5py, random, numpy as np, xml.etree.ElementTree as ET
 from natsort import natsorted
 
 CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_frontalface_alt.xml")
@@ -410,8 +410,13 @@ def main():
             # save_to_disk(output_path, frames)
             # save_to_disk(output_path, flows)
 
-            save_as_hdf5(output_path, frames[1], "framesBGR")
-            map(lambda flow: save_as_hdf5(output_path, flow, "flows"), flows)
+            if random.random() > 0.9:
+                postfix = "test"
+            else:
+                postfix = "train"
+
+            save_as_hdf5(output_path, frames[1], "framesBGR_%s" % postfix)
+            map(lambda flow: save_as_hdf5(output_path, flow, "flows_%s" % postfix), flows)
 
     # exit
     cv2.destroyAllWindows()
