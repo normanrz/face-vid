@@ -68,7 +68,7 @@ def read_labels(path, length):
         facs_code = au.get("Number")
 
         for marker in au.findall("Marker"):
-            frame_number = int(marker.get("Frame"))
+            frame_number = int(marker.get("Frame")) - 1
 
             label = map_label(facs_code)
             labels[frame_number, label] = 1
