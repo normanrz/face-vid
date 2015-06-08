@@ -269,7 +269,7 @@ def save_as_hdf5(output_path, frameSet, db_name):
 
     try:
         db_path = os.path.join(output_path, db_name)
-        h5file = h5py.File(db_path, "a")
+        h5file = h5py.File(db_path + ".h5", "a")
 
         frames = np.concatenate(frameSet.frames, 3)
         labels = np.concatenate(frameSet.labels, 1)
