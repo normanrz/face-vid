@@ -1,4 +1,4 @@
-net: "train_val.prototxt"
+net: "flow/train_val.prototxt"
 # Test every nth iteration
 test_interval: 1000
 # How many iterations per test
@@ -21,7 +21,7 @@ max_iter: 100000
 
 # Snapshot every nth iteration in the specified directory
 snapshot: 1000
-snapshot_prefix: "./snapshots/"
+snapshot_prefix: "./flow-snapshots/"
 
 random_seed: 1701
 # Display the loss averaged over the last average_loss iterations

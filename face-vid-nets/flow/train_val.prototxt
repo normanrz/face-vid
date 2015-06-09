@@ -7,10 +7,7 @@ layer {
   include {
     phase: TRAIN
   }
-  transform_param {
-    crop_size: 227
-  }
-  data_param {
+  hdf5_data_param {
     source: "/opt/data_sets/mmi_oao_facs/hdf5/flows_train.h5"
     batch_size: 256
   }
@@ -23,11 +20,8 @@ layer {
   include {
     phase: TEST
   }
-  transform_param {
-    crop_size: 227
-  }
-  data_param {
-    source: "/opt/data_sets/mmi_oao_facs/hdf5/flows_train.h5"
+  hdf5_data_param {
+    source: "/opt/data_sets/mmi_oao_facs/hdf5/flows_test.h5"
     batch_size: 50
   }
 }
