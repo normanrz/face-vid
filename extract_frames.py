@@ -268,8 +268,24 @@ def save_to_disk(output_path, frameSets):
 def save_as_hdf5(output_path, frameSet, db_name):
 
     try:
-        db_path = os.path.join(output_path, db_name)
-        h5file = h5py.File(db_path + ".h5", "a")
+
+	done = False
+	while not done:
+	    filename_counter = 0
+	    db_name = db_name + "_%s.h5" % filename_counter
+	    db_path = os.path.join(output_path, db_name)
+
+	    if os.path.isfile(db_path):
+		# file must not be bigger than 1GB
+		if os.stat(db_path).st_size > 1000000 * 1024:
+		    filename_counter += 1
+		else:
+		    done = True
+	    else:
+		done = True
+
+
+	h5file = h5py.File(db_path)
 
         frames = np.concatenate(frameSet.frames, 3)
         labels = np.concatenate(frameSet.labels, 1)
