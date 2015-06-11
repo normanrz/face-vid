@@ -8,7 +8,7 @@ layer {
     phase: TRAIN
   }
   hdf5_data_param {
-    source: "/opt/data_sets/mmi_oao_facs/hdf5/flows_train.h5"
+    source: "/home/mpss2015/face-vid/face-vid-nets/flow/flows_train_source.txt"
     batch_size: 256
   }
 }
@@ -21,7 +21,7 @@ layer {
     phase: TEST
   }
   hdf5_data_param {
-    source: "/opt/data_sets/mmi_oao_facs/hdf5/flows_test.h5"
+    source: "/home/mpss2015/face-vid/face-vid-nets/flow/flows_test_source.txt"
     batch_size: 50
   }
 }
