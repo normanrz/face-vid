@@ -269,23 +269,23 @@ def save_as_hdf5(output_path, frameSet, db_name):
 
     try:
 
-	done = False
-	while not done:
-	    filename_counter = 0
-	    db_name = db_name + "_%s.h5" % filename_counter
-	    db_path = os.path.join(output_path, db_name)
+        done = False
+        while not done:
+            filename_counter = 0
+            file_name = db_name + "_%s.h5" % filename_counter
+            db_path = os.path.join(output_path, file_name)
 
-	    if os.path.isfile(db_path):
-		# file must not be bigger than 1GB
-		if os.stat(db_path).st_size > 1000000 * 1024:
-		    filename_counter += 1
-		else:
-		    done = True
-	    else:
-		done = True
+            if os.path.isfile(db_path):
+                # file must not be bigger than 1GB
+                if os.stat(db_path).st_size > 1000000 * 1024:
+                    filename_counter += 1
+                else:
+                    done = True
+            else:
+                done = True
 
 
-	h5file = h5py.File(db_path)
+        h5file = h5py.File(db_path)
 
         frames = np.concatenate(frameSet.frames, 3)
         labels = np.concatenate(frameSet.labels, 1)
@@ -370,6 +370,15 @@ def post_process(frameSets):
     return map(resize, frameSets)
 
 
+def calc_mean(frameSets, axis):
+
+    def mean(frameSet):
+        return map(lambda x: np.ndarray.flatten(np.mean(x, axis=(0,1))[0:axis]), frameSet.frames)
+
+    means = map(mean, frameSets)
+    return list(itertools.chain.from_iterable(means))
+
+
 def get_all_videos(root_dir):
 
   # read the content of the root directory and filter all directories
@@ -404,9 +413,11 @@ def main():
         sys.exit("The specified <output_path> argument is not a valid directory")
 
 
+    flow_means = list() ; frame_means = list()
+
     for video in get_all_videos(video_path):
 
-        print "Processing video: %s\n" % video
+        print "Processing video: <%s></%s>" % video
 
         # ready to rumble
         framesGray, framesBGR = read_video(video)
@@ -426,6 +437,11 @@ def main():
             # save_to_disk(output_path, frames)
             # save_to_disk(output_path, flows)
 
+            # print np.mean(flows[0].frames[0], axis=(0,1))[0:1]
+
+            flow_means += calc_mean(flows, 1)
+            frame_means += calc_mean(frames, 3)
+
             if random.random() > 0.9:
                 postfix = "test"
             else:
@@ -433,6 +449,12 @@ def main():
 
             save_as_hdf5(output_path, frames[1], "framesBGR_%s" % postfix)
             map(lambda flow: save_as_hdf5(output_path, flow, "flows_%s" % postfix), flows)
+
+
+    #display means
+    print flow_means
+    print frame_means
+
 
     # exit
     cv2.destroyAllWindows()
