@@ -417,7 +417,7 @@ def main():
 
     for video in get_all_videos(video_path):
 
-        print "Processing video: <%s></%s>" % video
+        print "Processing video: <%s>" % video
 
         # ready to rumble
         framesGray, framesBGR = read_video(video)
