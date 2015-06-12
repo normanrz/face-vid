@@ -398,6 +398,19 @@ def get_all_videos(root_dir):
             filenames.append(absolute_file)
   return filenames
 
+def write_labels_to_disk(root_dir):
+
+  # open ouput file
+  filename = os.path.join(root_dir, "labelmapping.txt")
+  output_file = open(filename, "w")
+
+  output_file.write("Mapping FACS label -> integer label\n")
+  for key in sorted(label_mapping, key=label_mapping.get):
+    line = '{} {}\n'.format(key, label_mapping[key])
+    output_file.write(line)
+
+  # close output file
+  output_file.close()
 
 def main():
     if len(sys.argv) < 3:
@@ -440,8 +453,8 @@ def main():
 
             # print np.mean(flows[0].frames[0], axis=(0,1))[0:1]
 
-            flow_means += calc_mean(flows, 1)
-            frame_means += calc_mean(frames, 3)
+            #flow_means += calc_mean(flows, 1)
+            #frame_means += calc_mean(frames, 3)
 
             if random.random() > 0.9:
                 postfix = "test"
@@ -456,6 +469,8 @@ def main():
     print flow_means
     print frame_means
 
+    #write labels to disk
+    write_labels_to_disk(output_path)
 
     # exit
     cv2.destroyAllWindows()
