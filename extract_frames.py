@@ -270,8 +270,9 @@ def save_as_hdf5(output_path, frameSet, db_name):
     try:
 
         done = False
+        filename_counter = 0
+
         while not done:
-            filename_counter = 0
             file_name = db_name + "_%s.h5" % filename_counter
             db_path = os.path.join(output_path, file_name)
 
