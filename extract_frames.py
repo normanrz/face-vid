@@ -318,7 +318,7 @@ def save_as_hdf5(output_path, frameSet, db_name):
                 ),
                 dtype="f",
                 chunks=True,
-                compression="gzip"
+                #compression="gzip"
             )
 
             label_shape = labels.shape
@@ -331,7 +331,7 @@ def save_as_hdf5(output_path, frameSet, db_name):
                 ),
                 dtype="f",
                 chunks=True,
-                compression="gzip"
+                #compression="gzip"
             )
             # set the start indices in fourth dimension
             start_data = 0
