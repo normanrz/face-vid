@@ -301,33 +301,41 @@ def save_as_hdf5(output_path, frameSet, db_name):
             start_label = label_dataset.shape[-1]
 
             # resize the datasets so that the new data can fit in
-            frames_dataset.resize(start_data + frames.shape[-1], 3)
-            label_dataset.resize(start_data + labels.shape[-1], 1)
+            frames_dataset.resize(start_data + frames.shape[-1], 0)
+            label_dataset.resize(start_data + labels.shape[-1], 0)
 
         except KeyError:
             # create new datasets in hdf5 file
-            data_shape = frames.shape
+            data_shape = (
+                    frames.shape[3],
+                    frames.shape[2],
+                    frames.shape[1],
+                    frames.shape[0]
+                )
             frames_dataset = h5file.create_dataset(
                 "data",
                 shape=data_shape,
                 maxshape=(
-                    data_shape[0],
+                    None,
                     data_shape[1],
                     data_shape[2],
-                    None,
+                    data_shape[3]
                 ),
                 dtype="f",
                 chunks=True,
                 #compression="gzip"
             )
 
-            label_shape = labels.shape
+            label_shape = (
+                    labels.shape[1],
+                    labels.shape[0]
+                )
             label_dataset = h5file.create_dataset(
                 "/label",
                 shape=label_shape,
                 maxshape=(
-                    label_shape[0],
                     None,
+                    label_shape[1]
                 ),
                 dtype="f",
                 chunks=True,
@@ -339,8 +347,9 @@ def save_as_hdf5(output_path, frameSet, db_name):
 
         if label_dataset is not None and frames_dataset is not None:
             # write the given data into the hdf5 file
-            frames_dataset[:, :, :, start_data:start_data + frames.shape[-1]] = frames
-            label_dataset[:, start_label:start_label + labels.shape[-1]] = labels
+            reshaped_frames = np.transpose(frames, (3, 2, 1, 0))
+            frames_dataset[start_data:start_data + frames.shape[-1], :, :, :] = reshaped_frames
+            label_dataset[start_label:start_label + labels.shape[-1], :] = np.transpose(labels)
 
     finally:
 
@@ -365,7 +374,7 @@ def reduce_dataset(frameSets):
 def post_process(frameSets):
 
     def resize(frameSet):
-        resized_frames = map(lambda f: cv2.resize(f, (230, 230)), frameSet.frames)
+        resized_frames = map(lambda f: cv2.resize(f, (227, 227)), frameSet.frames)
         return frameSet.newStream(resized_frames, frameSet.streamName)
 
     return map(resize, frameSets)
@@ -451,7 +460,7 @@ def main():
             # save_to_disk(output_path, frames)
             # save_to_disk(output_path, flows)
 
-            # print np.mean(flows[0].frames[0], axis=(0,1))[0:1]
+            #print np.mean(flows[0].frames[0], axis=(0,1))[0]
 
             #flow_means += calc_mean(flows, 1)
             #frame_means += calc_mean(frames, 3)

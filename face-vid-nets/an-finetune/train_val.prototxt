@@ -1,38 +1,28 @@
 name: "AlexNet-FaceVid"
 layer {
   name: "data"
-  type: "Data"
+  type: "HDF5Data"
   top: "data"
   top: "label"
   include {
     phase: TRAIN
   }
-  transform_param {
-    mirror: true
-    crop_size: 227
-  }
-  data_param {
-    source: "/opt/data_sets/mmi_oao_facs/MMI_OAO_3_TRAIN"
+  hdf5_data_param {
+    source: "/home/mpss2015/face-vid/face-vid-nets/framesBGR_train_source.txt"
     batch_size: 10
-    backend: LMDB
   }
 }
 layer {
   name: "data"
-  type: "Data"
+  type: "HDF5Data"
   top: "data"
   top: "label"
   include {
     phase: TEST
   }
-  transform_param {
-    mirror: false
-    crop_size: 227
-  }
-  data_param {
-    source: "/opt/data_sets/mmi_oao_facs/MMI_OAO_3_TEST"
-    batch_size: 16
-    backend: LMDB
+  hdf5_data_param {
+    source: "/home/mpss2015/face-vid/face-vid-nets/framesBGR_test_source.txt"
+    batch_size: 100
   }
 }
 layer {
@@ -373,9 +363,9 @@ layer {
     phase: TEST
   }
 }
-layer {
+layer { 
   name: "loss"
-  type: "SoftmaxWithLoss"
+  type: "SigmoidCrossEntropyLossLayer"
   bottom: "fc8"
   bottom: "label"
   top: "loss"

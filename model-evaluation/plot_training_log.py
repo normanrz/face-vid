@@ -4,6 +4,8 @@ import os
 import random
 import sys
 import csv
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.cm as cmx
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
@@ -119,8 +121,8 @@ def plot_chart(path_to_out_dir, path_to_log_list):
             label = get_data_label(path_to_log)
             linewidth = 0.75
             ## If there too many datapoints, do not use marker.
-    ##        use_marker = False
-            use_marker = True
+            use_marker = False
+    ##        use_marker = True
             if not use_marker:
                 plt.plot(data[0], data[1], label = label, color = color,
                          linewidth = linewidth)

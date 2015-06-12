@@ -4,6 +4,7 @@
 data
 .idea/
 *.iml
+*.pyc
 *.log
 *.log.test
 *.log.train

@@ -1,0 +1,4 @@
+/opt/data_sets/mmi_oao_facs/hdf5/framesBGR_train_0.h5
+/opt/data_sets/mmi_oao_facs/hdf5/framesBGR_train_1.h5
+/opt/data_sets/mmi_oao_facs/hdf5/framesBGR_train_2.h5
+/opt/data_sets/mmi_oao_facs/hdf5/framesBGR_train_3.h5
