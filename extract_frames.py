@@ -14,6 +14,7 @@
 from __future__ import generators
 import cv2, os, sys, itertools, functools, h5py, random, numpy as np, xml.etree.ElementTree as ET
 from natsort import natsorted
+import pdb
 
 CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_frontalface_alt.xml")
 SCALE_FLOW = 10
@@ -125,7 +126,7 @@ def read_video(video):
                 break
 
             (imageAsGray, imageAsBGR) = preprocessMMI(frame)
-            framesGray.append(imageAsGray)
+            framesGray.append(np.expand_dims(imageAsGray, axis = 2))
             framesBGR.append(imageAsBGR)
 
         cap.release()
@@ -133,7 +134,7 @@ def read_video(video):
         label_file = video.replace(".avi", "-oao_aucs.xml")
         labels = read_labels(label_file, len(framesBGR))
 
-        return (FrameSet(framesGray, "frame-gray", "normal", labels), FrameSet(framesBGR, "frame-bgr", "nromal", labels))
+        return (FrameSet(framesGray, "frame-gray", "normal", labels), FrameSet(framesBGR, "frame-bgr", "normal", labels))
     else:
         sys.exit("Error opening video file.")
 
@@ -229,7 +230,10 @@ def multiply_frames(frameSet):
         for j, gain in enumerate([0]):
             for k, bias in enumerate([-40, -20, 0, 20]):
                 newFrames = [contrast_brightness(frame, 1.1 ** gain, bias) for frame in rotatedFrames]
-                yield frameSet.newProcess(newFrames, "multi%i-%i-%i" % (i, j, k))
+                if len(newFrames[0].shape) == 2:
+                    yield frameSet.newProcess(np.expand_dims(newFrames, 3), "multi%i-%i-%i" % (i, j, k))
+                else:
+                    yield frameSet.newProcess(newFrames, "multi%i-%i-%i" % (i, j, k))
 
 
 # Calculate the optical flow along the x and y axis
@@ -287,7 +291,6 @@ def save_as_hdf5(output_path, frameSet, db_name):
 
 
         h5file = h5py.File(db_path)
-
         frames = np.concatenate(frameSet.frames, 3)
         labels = np.concatenate(frameSet.labels, 1)
 
@@ -361,7 +364,6 @@ def reduce_dataset(frameSets):
 
     # only use frames that have labels
     def filter_relevant_frames(frameSet):
-
         frame_count = len(frameSet.frames)
         filtered_frames = [np.expand_dims(frameSet.frames[i], 3) for i in range(0, frame_count) if len(frameSet.labels[i]) > 0]
         filtered_labels = [np.expand_dims(frameSet.labels[i], 1) for i in range(0, frame_count) if len(frameSet.labels[i]) > 0]
@@ -377,16 +379,81 @@ def post_process(frameSets):
         resized_frames = map(lambda f: cv2.resize(f, (227, 227)), frameSet.frames)
         return frameSet.newStream(resized_frames, frameSet.streamName)
 
+    def setMaskedToMean(frameSets):
+        """Sets the black "masked" area aroudn the face to the mean value of the facial pixels
+
+        Parameters
+        ----------
+        frameSets: Pair of Framesets
+
+        Returns
+        -------
+        frameSets: Pair of FrameSets
+            The input framesets with mean value in the masked area
+        """
+
+        def fillMaskedArea(frame, value):
+            """Sets the black "masked" area aroudn the face to the mean value of the facial pixels
+
+            Parameters
+            ----------
+            frame: X x Y Array
+            value: the value to fill the masked area with
+            
+            Returns
+            -------
+            -
+            """
+            frame[frame == 0] = value
+            return frame
+
+        
+        for frameSet in frameSets:
+            meansPerFrame = calc_mean(frameSet)
+            for frameWithLayers, means in zip(frameSet.frames, meansPerFrame):
+                for layerI in range(0, len(frameWithLayers[0][0])):
+                    frame = frameWithLayers[0:len(frameWithLayers), 0:len(frameWithLayers[0]), layerI]
+                    mean = means[layerI]
+                    fillMaskedArea(frame, mean)
+
+    setMaskedToMean(frameSets)
     return map(resize, frameSets)
 
 
-def calc_mean(frameSets, axis):
+def calc_mean(frameSet):
+    def meansFrameSet(frameSet):
+        """calculate the means over all frames and depth
 
-    def mean(frameSet):
-        return map(lambda x: np.ndarray.flatten(np.mean(x, axis=(0,1))[0:axis]), frameSet.frames)
+        Parameters
+        ----------
+        frameSet: Frameset with component "frames" being #frames x X x Y x Z Array 
 
-    means = map(mean, frameSets)
-    return list(itertools.chain.from_iterable(means))
+        Returns
+        -------
+        meansOfLayers: Array
+            #frames x Z Array containing the means
+
+        """
+        return [[meanLayer(frame[0:len(frame), 0:len(frame[0]), layerI]) for layerI in range(0, len(frame[0][0]))] for frame in frameSet.frames]
+            
+
+
+    def meanLayer(layer):
+        """calculate the mean of a layer ignoring all zero elements
+
+        Parameters
+        ----------
+        layer : X x Y Array 
+
+        Returns
+        -------
+        double
+            mean value of the layer
+
+        """
+        return np.sum(layer) / np.count_nonzero(layer)
+
+    return meansFrameSet(frameSet)
 
 
 def get_all_videos(root_dir):
@@ -446,15 +513,14 @@ def main():
         framesGray, framesBGR = read_video(video)
 
         for framesGray, framesBGR in itertools.izip(multiply_frames(framesGray), multiply_frames(framesBGR)):
-
             # 1. find faces 2. calc flow 3. save to disk
             frames = face_pass(framesGray, framesBGR)
             flows = flow_pass(frames[0])
-
             frames = post_process(frames)
             flows = post_process(flows)
 
             frames = reduce_dataset(frames)
+
             flows = reduce_dataset(flows)
 
             # save_to_disk(output_path, frames)
@@ -462,8 +528,8 @@ def main():
 
             #print np.mean(flows[0].frames[0], axis=(0,1))[0]
 
-            #flow_means += calc_mean(flows, 1)
-            #frame_means += calc_mean(frames, 3)
+            #flow_means += calc_mean(flows)
+            #frame_means += calc_mean(frames)
 
             if random.random() > 0.9:
                 postfix = "test"
