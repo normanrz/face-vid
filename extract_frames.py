@@ -365,8 +365,8 @@ def reduce_dataset(frameSets):
     # only use frames that have labels
     def filter_relevant_frames(frameSet):
         frame_count = len(frameSet.frames)
-        filtered_frames = [np.expand_dims(frameSet.frames[i], 3) for i in range(0, frame_count) if len(frameSet.labels[i]) > 0]
-        filtered_labels = [np.expand_dims(frameSet.labels[i], 1) for i in range(0, frame_count) if len(frameSet.labels[i]) > 0]
+        filtered_frames = [np.expand_dims(frameSet.frames[i], 3) for i in range(0, frame_count) if np.count_nonzero(frameSet.labels[i]) > 0]
+        filtered_labels = [np.expand_dims(frameSet.labels[i], 1) for i in range(0, frame_count) if np.count_nonzero(frameSet.labels[i]) > 0]
 
         return frameSet.newStream(filtered_frames, frameSet.streamName, filtered_labels)
 
