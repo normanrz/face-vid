@@ -416,7 +416,7 @@ def post_process(frameSets):
                     mean = means[layerI]
                     fillMaskedArea(frame, mean)
 
-    setMaskedToMean(frameSets)
+    #setMaskedToMean(frameSets)
     return map(resize, frameSets)
 
 
