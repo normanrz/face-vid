@@ -300,8 +300,8 @@ def save_as_hdf5(output_path, frameSet, db_name):
             label_dataset = h5file["label"]
 
             # set the start indices
-            start_data = frames_dataset.shape[-1]
-            start_label = label_dataset.shape[-1]
+            start_data = frames_dataset.shape[0]
+            start_label = label_dataset.shape[0]
 
             # resize the datasets so that the new data can fit in
             frames_dataset.resize(start_data + frames.shape[-1], 0)
@@ -399,7 +399,7 @@ def post_process(frameSets):
             ----------
             frame: X x Y Array
             value: the value to fill the masked area with
-            
+
             Returns
             -------
             -
@@ -407,7 +407,7 @@ def post_process(frameSets):
             frame[frame == 0] = value
             return frame
 
-        
+
         for frameSet in frameSets:
             meansPerFrame = calc_mean(frameSet)
             for frameWithLayers, means in zip(frameSet.frames, meansPerFrame):
@@ -426,7 +426,7 @@ def calc_mean(frameSet):
 
         Parameters
         ----------
-        frameSet: Frameset with component "frames" being #frames x X x Y x Z Array 
+        frameSet: Frameset with component "frames" being #frames x X x Y x Z Array
 
         Returns
         -------
@@ -435,7 +435,7 @@ def calc_mean(frameSet):
 
         """
         return [[meanLayer(frame[0:len(frame), 0:len(frame[0]), layerI]) for layerI in range(0, len(frame[0][0]))] for frame in frameSet.frames]
-            
+
 
 
     def meanLayer(layer):
@@ -443,7 +443,7 @@ def calc_mean(frameSet):
 
         Parameters
         ----------
-        layer : X x Y Array 
+        layer : X x Y Array
 
         Returns
         -------
