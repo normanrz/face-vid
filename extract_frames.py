@@ -24,11 +24,13 @@ import io
 import string
 import random
 
+
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
    return ''.join(random.choice(chars) for _ in range(size))
 
 CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_frontalface_alt.xml")
 SCALE_FLOW = 10
+DEBUG = False
 
 faceCascade = cv2.CascadeClassifier(CLASSIFIER_PATH)
 
@@ -117,7 +119,8 @@ def detect_faces_and_mask_surroundings(frameSets, face_cache):
                 return [head] + remember_face(face, tail)
 
     for frameSet in frameSets:
-        print "detect_faces_and_mask_surroundings:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
+        if DEBUG:
+            print "detect_faces_and_mask_surroundings:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
         if frameSet.streamName == "grayscale":
             known_faces = []
             for i, frame in enumerate(frameSet.frames):
@@ -186,7 +189,8 @@ def induce_flows(frameSets):
         return cv2.merge(frames)
 
     for frameSet in frameSets:
-        print "induce_flows..:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
+        if DEBUG:
+            print "induce_flows..:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
         if frameSet.streamName == "grayscale":
             flows = zip(*[calculateFlow(f1, f2) for f1, f2 in zip(frameSet.frames[0] + frameSet.frames, frameSet.frames)])
             empty_frame = np.ones_like(flows[0][0]) * 128
@@ -203,13 +207,15 @@ def induce_flows(frameSets):
 
 def filter_framesets_out_by_stream_name(frameSets, stream_name):
     for frameSet in frameSets:
-        print "filter_framesets_out..:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
+        if DEBUG:
+            print "filter_framesets_out..:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
         if frameSet.streamName != stream_name:
             yield frameSet
 
 def filter_frames_with_labels(frameSets):
     for frameSet in frameSets:
-        print "filter frames with labels:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
+        if DEBUG:
+            print "filter frames with labels:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
         frame_count = len(frameSet.frames)
         filtered_frames = [frameSet.frames[i] for i in range(0, frame_count) if np.count_nonzero(frameSet.labels[i]) > 0]
         filtered_labels = [frameSet.labels[i] for i in range(0, frame_count) if np.count_nonzero(frameSet.labels[i]) > 0]
@@ -217,16 +223,17 @@ def filter_frames_with_labels(frameSets):
 
 def resizeFrames(frameSets, x, y):
     for frameSet in frameSets:
-        print "resizeFrames:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
+        if DEBUG:
+            print "resizeFrames:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
         resized_frames = map(lambda frame: cv2.resize(frame, (x, y)), frameSet.frames)
-        print "afterResize:", frameSet.processName, frameSet.streamName, resized_frames[0].shape
         if len(resized_frames[0].shape) < 3:
             resized_frames = map(lambda frame: np.expand_dims(frame, 2), resized_frames)
         yield frameSet.newStream(resized_frames, frameSet.streamName)
 
 def accumulate_means(frameSets, means, layer_counts):
     for frameSet in frameSets:
-        print "accumulate_means:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
+        if DEBUG:
+            print "accumulate_means:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
         for frame in frameSet.frames:
             for layer in range(0, len(frame[0][0])):
                 flatFrame = frame[:, :, layer]
@@ -239,12 +246,14 @@ def accumulate_means(frameSets, means, layer_counts):
         yield frameSet
 
 def calculate_means(means, layer_counts):
-    print json.dumps(means)
-    print json.dumps(layer_counts)
+    if DEBUG:
+        print json.dumps(means)
+        print json.dumps(layer_counts)
     for streamName, counts_per_layer in layer_counts.items():
         for layer, count in counts_per_layer.items():
             means[streamName][layer] = means[streamName][layer] / count
-    print json.dumps(means)
+    if DEBUG:
+        print json.dumps(means)
     return means
 
 def set_masks_to_mean(frameSets, means):
@@ -258,13 +267,10 @@ def mark_as_test(frameSets, percentageTrainingSet):
     for frameSet in frameSets:
         if frameSet.processName in cache:
             frameSet.markAsTest(cache[frameSet.processName])
-            print frameSet.streamName, frameSet.processName, "cached as", frameSet.getDbPostfix()
         elif random.random() > 0.9:
-            print "marked", frameSet.streamName, frameSet.processName, "as Test"
             frameSet.markAsTest(True)
             cache[frameSet.processName] = True
         else:
-            print "marked", frameSet.streamName, frameSet.processName, "as Training"
             frameSet.markAsTest(False)
             cache[frameSet.processName] = False
         yield frameSet

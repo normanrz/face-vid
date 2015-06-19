@@ -81,7 +81,7 @@ def read_from_hdf5_tree(hdf5_file):
             yield FrameSet(dataAndLabels["data"].value, streamName, processName, dataAndLabels["label"].value)
     f.close()
 
-def save_for_caffe(output_path, frameSets):
+def save_for_caffe(output_path, frameSets, DEBUG=False):
     def build_db_name(output_path, frameSet, filename_counters):
         db_prefix = None
         if frameSet.streamName == "BGR":
@@ -111,7 +111,8 @@ def save_for_caffe(output_path, frameSets):
             filename_counters[db_prefix] += 1
             db_prefix, db = build_db_name(output_path, frameSet, filename_counters)
 
-        print frameSet.processName, frameSet.streamName, db
+        if DEBUG:
+            print frameSet.processName, frameSet.streamName, db
         f = h5py.File(db)
         if "data" not in f:
             initialize_db(f, frameSet)
