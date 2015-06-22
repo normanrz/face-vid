@@ -292,6 +292,7 @@ def extraction_flow(video_path, output_path):
 
             frames = get_frames(video_file_name)
             labels = get_labels(video_file_name, len(frames))
+            print "labels set:", np.count_nonzero(labels)
             frameSet = FrameSet(frames, "framesOriginal", processId, labels)
 
             frameSets = split_grayscale_BGR(frameSet)
