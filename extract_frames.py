@@ -63,9 +63,6 @@ def detect_face(image):
         flags=cv2.cv.CV_HAAR_SCALE_IMAGE
     )
 
-    if len(faces) == 0:
-        sys.exit()
-
     return faces
 
 # Invoke face detection, find largest cropping window and apply elliptical mask
@@ -133,17 +130,20 @@ def detect_faces_and_mask_surroundings(frameSets, face_cache):
                 for face in detect_face(frame):
                     known_faces = remember_face(face, known_faces)
 
-
-            most_significant_face = max(known_faces, key=lambda x: x["count"])
-            face_cache[frameSet.processName] = most_significant_face
-            yield apply_mask(frameSet, most_significant_face)
+            if len(known_faces) > 0:
+                most_significant_face = max(known_faces, key=lambda x: x["count"])
+                face_cache[frameSet.processName] = most_significant_face
+                yield apply_mask(frameSet, most_significant_face)
+            else:
+                print "Didn't find faces for frameSet(%s) %s, skipping that video" % (frameSet.streamName, frameSet.processName)
+                break
         else:
             most_significant_face = face_cache.get(frameSet.processName, None)
             if most_significant_face:
                 yield apply_mask(frameSet, most_significant_face)
             else:
-                sys.exit("Fatal error: didn't find entry in facecache for frameset(%s):%s" % (frameSet.streamName, frameSet.processName))
-
+                print "Didn't find faces for frameSet(%s) %s, skipping that video" % (frameSet.streamName, frameSet.processName)
+                break
 
 
 def calculateFlow(frame1, frame2):
