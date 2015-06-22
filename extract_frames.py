@@ -286,7 +286,7 @@ def extraction_flow(video_path, output_path):
     def extract_frames():
         face_cache = {}
         video_file_names = get_all_videos(video_path)
-        for i,video_file_name in enumerate(video_files_names):
+        for i, video_file_name in enumerate(video_file_names):
             processId = os.path.split(video_file_name)[1] + "-" + id_generator()
             print "Processing video: <%s> (%d/%d)" % (video_file_name, i, len(video_file_names))
 
