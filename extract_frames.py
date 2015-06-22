@@ -285,9 +285,10 @@ def extraction_flow(video_path, output_path):
     layer_counts = defaultdict(lambda: defaultdict(int))
     def extract_frames():
         face_cache = {}
-        for video_file_name in get_all_videos(video_path):
+        video_file_names = get_all_videos(video_path)
+        for i,video_file_name in enumerate(video_files_names):
             processId = os.path.split(video_file_name)[1] + "-" + id_generator()
-            print "Processing video: <%s> id: %s" % (video_file_name, processId)
+            print "Processing video: <%s> (%d/%d)" % (video_file_name, i, len(video_file_names))
 
             frames = get_frames(video_file_name)
             labels = get_labels(video_file_name, len(frames))
