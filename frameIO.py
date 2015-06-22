@@ -61,7 +61,7 @@ def save_as_hdf5_tree(output_path, db_name, frameSets):
     """
         saves frameSets as hdf5, expects the frames to be in caffe format Frames x Layers x X x Y as one big nparray
     """
-    f = h5py.File(os.path.join(output_path, db_name), "w")
+    f = h5py.File(os.path.join(output_path, db_name), "a")
     
     for frameSet in frameSets:
         dataset_name = "/".join([frameSet.processName, frameSet.streamName])
