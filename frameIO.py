@@ -65,8 +65,8 @@ def save_as_hdf5_tree(output_path, db_name, frameSets):
     
     for frameSet in frameSets:
         dataset_name = "/".join([frameSet.processName, frameSet.streamName])
-        f.create_dataset(dataset_name + "/data", data = frameSet.frames, dtype="uint8")
-        f.create_dataset(dataset_name + "/label", data = frameSet.labels, dtype="uint8")
+        f.create_dataset(dataset_name + "/data", data = frameSet.frames, dtype="f")
+        f.create_dataset(dataset_name + "/label", data = frameSet.labels, dtype="f")
 
     f.flush()
     f.close()
@@ -96,10 +96,10 @@ def save_for_caffe(output_path, frameSets, DEBUG=False):
 
     def initialize_db(h5File, frameSet):
         max_shape_data = (None,) + frameSet.frames[0].shape
-        h5File.create_dataset("data", maxshape=max_shape_data, data=frameSet.frames, chunks=True, dtype="uint8")
+        h5File.create_dataset("data", maxshape=max_shape_data, data=frameSet.frames, chunks=True, dtype="f")
 
         max_shape_label = (None, ) + frameSet.labels[0].shape
-        h5File.create_dataset("label", maxshape=max_shape_label, data=frameSet.labels, chunks=True, dtype="uint8")
+        h5File.create_dataset("label", maxshape=max_shape_label, data=frameSet.labels, chunks=True, dtype="f")
 
     max_file_size = 1000 * 1000 * 1000 # 1 GB
     filename_counters = defaultdict(int)
