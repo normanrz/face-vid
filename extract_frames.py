@@ -258,8 +258,20 @@ def calculate_means(means, layer_counts):
 
 def set_masks_to_mean(frameSets, means):
     for frameSet in frameSets:
-        for layer in range(0,len(frameSet.frames[0])):
-            frameSet.frames[:, layer][frameSet.frames[:, layer] == 0] = means[frameSet.streamName][str(layer)]
+        if frameSet.streamName.startswith("flow"):
+            frameSet.frames[frameSet.frames == 0] = means[frameSet.streamName][0]
+        else:
+            for layer in range(0,len(frameSet.frames[0])):
+                frameSet.frames[:, layer][frameSet.frames[:, layer] == 0] = means[frameSet.streamName][layer]
+        yield frameSet
+
+def substract_means(frameSets, means):
+    for frameSet in frameSets:
+        if frameSet.streamName.startswith("flow"):
+            frameSet.frames -= means[frameSet.streamName][0]
+        else:
+            for layer in range(0,len(frameSet.frames[0])):
+                frameSet.frames[:, layer] -= means[frameSet.streamName][layer]
         yield frameSet
 
 def mark_as_test(frameSets, percentageTrainingSet):
@@ -308,7 +320,9 @@ def extraction_flow(video_path, output_path):
 
     def finalize():
         frameSets = read_from_hdf5_tree(os.path.join(output_path, intermediate_h5_file))
-        frameSets = set_masks_to_mean(frameSets,means)
+        print means
+        frameSets = set_masks_to_mean(frameSets, means)
+        frameSets = substract_means(frameSets, means)
         frameSets = mark_as_test(frameSets, 0.9)
         save_for_caffe(output_path, frameSets)
 
