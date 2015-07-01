@@ -291,8 +291,10 @@ def save_as_hdf5(output_path, frameSet, db_name):
 
 
         h5file = h5py.File(db_path)
-        frames = np.concatenate(frameSet.frames, 3)
-        labels = np.concatenate(frameSet.labels, 1)
+        frames = np.concatenate(frameSet.frames, 0)
+        labels = np.concatenate(frameSet.labels, 0)
+
+        print frames.shape
 
         try:
             # get the datasets
@@ -304,16 +306,16 @@ def save_as_hdf5(output_path, frameSet, db_name):
             start_label = label_dataset.shape[0]
 
             # resize the datasets so that the new data can fit in
-            frames_dataset.resize(start_data + frames.shape[-1], 0)
-            label_dataset.resize(start_data + labels.shape[-1], 0)
+            frames_dataset.resize(start_data + frames.shape[0], 0)
+            label_dataset.resize(start_data + labels.shape[0], 0)
 
         except KeyError:
             # create new datasets in hdf5 file
             data_shape = (
-                    frames.shape[3],
-                    frames.shape[2],
                     frames.shape[0],
-                    frames.shape[1]
+                    frames.shape[1],
+                    frames.shape[2],
+                    frames.shape[3],
                 )
             frames_dataset = h5file.create_dataset(
                 "data",
@@ -330,8 +332,8 @@ def save_as_hdf5(output_path, frameSet, db_name):
             )
 
             label_shape = (
+                    labels.shape[0],
                     labels.shape[1],
-                    labels.shape[0]
                 )
             label_dataset = h5file.create_dataset(
                 "/label",
@@ -350,9 +352,9 @@ def save_as_hdf5(output_path, frameSet, db_name):
 
         if label_dataset is not None and frames_dataset is not None:
             # write the given data into the hdf5 file
-            reshaped_frames = np.transpose(frames, (3, 2, 0, 1))
-            frames_dataset[start_data:start_data + frames.shape[-1], :, :, :] = reshaped_frames
-            label_dataset[start_label:start_label + labels.shape[-1], :] = np.transpose(labels)
+            #reshaped_frames = np.transpose(frames, (3, 2, 0, 1))
+            frames_dataset[start_data:start_data + frames.shape[0], :, :, :] = frames
+            label_dataset[start_label:start_label + labels.shape[0], :] = labels
 
     finally:
 
@@ -365,8 +367,8 @@ def reduce_dataset(frameSets):
     # only use frames that have labels
     def filter_relevant_frames(frameSet):
         frame_count = len(frameSet.frames)
-        filtered_frames = [np.expand_dims(frameSet.frames[i], 3) for i in range(0, frame_count) if np.count_nonzero(frameSet.labels[i]) > 0]
-        filtered_labels = [np.expand_dims(frameSet.labels[i], 1) for i in range(0, frame_count) if np.count_nonzero(frameSet.labels[i]) > 0]
+        filtered_frames = [np.expand_dims(frameSet.frames[i], 0) for i in range(0, frame_count) if np.count_nonzero(frameSet.labels[i]) > 0]
+        filtered_labels = [np.expand_dims(frameSet.labels[i], 0) for i in range(0, frame_count) if np.count_nonzero(frameSet.labels[i]) > 0]
 
         return frameSet.newStream(filtered_frames, frameSet.streamName, filtered_labels)
 
@@ -378,6 +380,7 @@ def post_process(frameSets):
     def resize(frameSet):
         resized_frames = map(lambda f: cv2.resize(f, (227, 227)), frameSet.frames)
         return frameSet.newStream(resized_frames, frameSet.streamName)
+
 
     def setMaskedToMean(frameSets):
         """Sets the black "masked" area aroudn the face to the mean value of the facial pixels
@@ -418,6 +421,24 @@ def post_process(frameSets):
 
     #setMaskedToMean(frameSets)
     return map(resize, frameSets)
+
+
+def normalize_images(frameSets):
+
+    def normalize_func(np_image):
+        # normalize the image to contain values from 0 to 1 in each channel
+        minval = np_image.min()
+        maxval = np_image.max()
+        if minval != maxval:
+            np_image -= minval
+            np_image *= (1.0 / (maxval-minval))
+        return np_image
+
+    def normalize(frameSet):
+        resized_frames = map(normalize_func, frameSet.frames)
+        return frameSet.newStream(resized_frames, frameSet.streamName)
+
+    return map(normalize, frameSets)
 
 
 def calc_mean(frameSet):
@@ -524,6 +545,10 @@ def main():
             flows = flow_pass(frames[0])
             frames = post_process(frames)
             flows = post_process(flows)
+
+            frames = normalize_images(frames)
+            flows = normalize_images(flows)
+
 
             frames = reduce_dataset(frames)
 
