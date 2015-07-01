@@ -312,8 +312,8 @@ def save_as_hdf5(output_path, frameSet, db_name):
             data_shape = (
                     frames.shape[3],
                     frames.shape[2],
-                    frames.shape[1],
-                    frames.shape[0]
+                    frames.shape[0],
+                    frames.shape[1]
                 )
             frames_dataset = h5file.create_dataset(
                 "data",
@@ -350,7 +350,7 @@ def save_as_hdf5(output_path, frameSet, db_name):
 
         if label_dataset is not None and frames_dataset is not None:
             # write the given data into the hdf5 file
-            reshaped_frames = np.transpose(frames, (3, 2, 1, 0))
+            reshaped_frames = np.transpose(frames, (3, 2, 0, 1))
             frames_dataset[start_data:start_data + frames.shape[-1], :, :, :] = reshaped_frames
             label_dataset[start_label:start_label + labels.shape[-1], :] = np.transpose(labels)
 
@@ -472,7 +472,7 @@ def get_all_videos(root_dir):
         if filename.endswith("avi"):
             absolute_file = os.path.join(root_dir, parent_dir, filename)
             filenames.append(absolute_file)
-  return filenames
+  return natsorted(filenames)
 
 def write_labels_to_disk(root_dir):
 
@@ -505,9 +505,15 @@ def main():
 
     flow_means = list() ; frame_means = list()
 
-    for video in get_all_videos(video_path):
+    allvideos = get_all_videos(video_path)
 
-        print "Processing video: <%s>" % video
+    print "About to process %d videos." % len(allvideos)
+
+    for (i,video) in enumerate(allvideos):
+
+        print "Processing video: %s" % video
+        sys.stdout.write("\rProcess: %.1f%%\n" % (100.*i/len(allvideos)))
+        sys.stdout.flush()
 
         # ready to rumble
         framesGray, framesBGR = read_video(video)
