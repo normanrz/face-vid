@@ -298,9 +298,14 @@ def extraction_flow(video_path, output_path):
     def extract_frames():
         face_cache = {}
         video_file_names = get_all_videos(video_path)
+
+        print "About to process %d videos." % len(video_file_names)
+
         for i, video_file_name in enumerate(video_file_names):
             processId = os.path.split(video_file_name)[1] + "-" + id_generator()
             print "Processing video: <%s> (%d/%d)" % (video_file_name, i, len(video_file_names))
+            sys.stdout.write("\rProcess: %.1f%%\n" % (100.*i/len(video_file_names)))
+            sys.stdout.flush()
 
             frames = get_frames(video_file_name)
             labels = get_labels(video_file_name, len(frames))
@@ -351,7 +356,7 @@ def main():
         sys.exit("The specified <output_path> argument is not a valid directory")
 
     extraction_flow(video_path, output_path)
-    
+
 
 
 if __name__ == "__main__":

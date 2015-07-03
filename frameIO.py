@@ -40,11 +40,11 @@ def get_frames(video_file_name):
 def save_to_disk_as_image(output_path, frameSets):
     for frameSet in frameSets:
         print "save_to_disk:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
-        for i, frame in enumerate(frameSet.frames):            
+        for i, frame in enumerate(frameSet.frames):
             if frameSet.streamName.startswith("flow"):
                 for layer in range(0,len(frame[0][0])):
                     flatFrame = frame[:, :, layer]
-                    cv2.imwrite(os.path.join(output_path, "%s_%s_%s_%s.png" % (frameSet.processName, frameSet.streamName, i, layer)), flatFrame)    
+                    cv2.imwrite(os.path.join(output_path, "%s_%s_%s_%s.png" % (frameSet.processName, frameSet.streamName, i, layer)), flatFrame)
             else:
                 cv2.imwrite(os.path.join(output_path, "%s_%s_%s.png" % (frameSet.processName, frameSet.streamName, i)), frame)
 
@@ -62,7 +62,7 @@ def save_as_hdf5_tree(output_path, db_name, frameSets):
         saves frameSets as hdf5, expects the frames to be in caffe format Frames x Layers x X x Y as one big nparray
     """
     f = h5py.File(os.path.join(output_path, db_name), "a")
-    
+
     for frameSet in frameSets:
         dataset_name = "/".join([frameSet.processName, frameSet.streamName])
         f.create_dataset(dataset_name + "/data", data = frameSet.frames, dtype="f")
@@ -77,7 +77,7 @@ def read_from_hdf5_tree(hdf5_file):
     """
     f = h5py.File(hdf5_file, "r")
     for processName, streams in f.items():
-        for streamName, dataAndLabels in streams.items(): 
+        for streamName, dataAndLabels in streams.items():
             yield FrameSet(dataAndLabels["data"].value, streamName, processName, dataAndLabels["label"].value)
     f.close()
 
@@ -106,7 +106,7 @@ def save_for_caffe(output_path, frameSets, DEBUG=False):
 
     for frameSet in frameSets:
         db_prefix, db = build_db_name(output_path, frameSet, filename_counters)
-        
+
         if os.path.isfile(db) and os.stat(db).st_size + frameSet.frames.nbytes > max_file_size:
             filename_counters[db_prefix] += 1
             db_prefix, db = build_db_name(output_path, frameSet, filename_counters)
@@ -147,7 +147,7 @@ def get_all_videos(root_dir):
         if filename.endswith("avi"):
             absolute_file = os.path.join(root_dir, parent_dir, filename)
             filenames.append(absolute_file)
-  return filenames
+  return natsorted(filenames)
 
 def write_labels_to_disk(root_dir):
 
