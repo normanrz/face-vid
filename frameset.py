@@ -1,5 +1,8 @@
 # A FrameSet represents a collection of frames for a named stream (e.g.
 # "frame-gray", "static-flow-x") and a named process (e.g. "normal", "rotate3")
+
+import numpy as np
+
 class FrameSet:
     def __init__(self, frames, streamName, processName, labels, isTestSet = False):
         self.frames = frames
@@ -12,7 +15,7 @@ class FrameSet:
         return FrameSet(map(f, self.frames), self.streamName, self.processName, self.labels, self.isTestSet)
 
     def newStream(self, frames, newStreamName, newLabels=None):
-        labels = newLabels if newLabels else self.labels
+        labels = newLabels if newLabels != None else self.labels
         return FrameSet(frames, newStreamName, self.processName, labels, self.isTestSet)
 
     def newProcess(self, frames, newProcessName):
@@ -39,4 +42,4 @@ class FrameSet:
         crossed_frames = cross(self.frames, otherFrameSet.frames)
         crossed_labels = cross(self.labels, otherFrameSet.labels)    
         crossed_streamName = self.streamName + "-X-" + otherFrameSet.streamName
-        return self.newStream(crossed_frames, crossed_streamName, crossed_labels)
+        return FrameSet(crossed_frames, crossed_streamName, self.processName, crossed_labels, self.isTestSet)

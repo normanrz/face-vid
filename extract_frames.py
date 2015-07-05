@@ -30,7 +30,8 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
 
 CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_frontalface_alt.xml")
 SCALE_FLOW = 10
-DEBUG = False
+DEBUG = True
+ONE_HAS_BEEN_ADDED=False
 
 faceCascade = cv2.CascadeClassifier(CLASSIFIER_PATH)
 
@@ -64,6 +65,15 @@ def detect_face(image):
     )
 
     return faces
+
+def add_one(frameSets):
+    global ONE_HAS_BEEN_ADDED
+    ONE_HAS_BEEN_ADDED = True
+    for frameSet in frameSets:
+        for frameI in range(len(frameSet.frames)):
+            frameSet.frames[frameI] += 1
+        yield frameSet
+
 
 # Invoke face detection, find largest cropping window and apply elliptical mask
 def detect_faces_and_mask_surroundings(frameSets, face_cache):
@@ -274,6 +284,41 @@ def substract_means(frameSets, means):
                 frameSet.frames[:, layer] -= means[frameSet.streamName][layer]
         yield frameSet
 
+def substract_means_within_ellipse(frameSets, means):
+    """
+        frameSets: in caffe format (frames X layers X Y x X)
+    """
+    def calculate_ellipses_parameters(frameSet):
+        height = frameSet.frames.shape[2]
+        width = frameSet.frames.shape[3]
+        center = (int(width * 0.5), int(height * 0.5))
+        axes = (int(width * 0.4), int(height * 0.5))
+        return center, axes
+
+    def apply_mask_with_Parameters(ellipseCenter, ellipseAxes):
+        def apply_mask(frame):
+            mask = np.zeros_like(frame)
+            cv2.ellipse(mask, ellipseCenter, ellipseAxes, 0, 0, 360, (255, 255, 255), -1)
+            return np.where(mask>0, frame, mask)
+        return apply_mask
+
+
+    for frameSet in frameSets:
+        if frameSet.isFlow():
+            frameSet.frames -= means[frameSet.streamName][0]
+        else:
+            for layer in range(0,len(frameSet.frames[0])):
+                frameSet.frames[:, layer] -= means[frameSet.streamName][layer]
+
+        ellipseCenter, ellipseAxes = calculate_ellipses_parameters(frameSet)
+        apply_mask = apply_mask_with_Parameters(ellipseCenter, ellipseAxes)
+        
+        for frameI in range(frameSet.frames.shape[0]):
+            for layerI in range(frameSet.frames.shape[1]):
+                frameSet.frames[frameI, layerI] = apply_mask(frameSet.frames[frameI, layerI])
+
+        yield frameSet
+
 def mark_as_test(frameSets, percentageTrainingSet):
     cache = {}
     for frameSet in frameSets:
@@ -294,7 +339,7 @@ def write_means(output_path, means):
 def cross_flows(frameSets):
     cache = {}
     for frameSet in frameSets:
-        if ! frameSet.isFlow():
+        if not frameSet.isFlow():
             yield frameSet
         else:
             if frameSet.processName in cache:
@@ -329,6 +374,7 @@ def extraction_flow(video_path, output_path):
 
             frameSets = split_grayscale_BGR(frameSet)
             frameSets = multiply_frames(frameSets)
+            # frameSets = add_one(frameSets)
             frameSets = detect_faces_and_mask_surroundings(frameSets, face_cache)
             frameSets = induce_flows(frameSets)
             frameSets = filter_framesets_out_by_stream_name(frameSets, "grayscale")
@@ -341,8 +387,8 @@ def extraction_flow(video_path, output_path):
     def finalize():
         frameSets = read_from_hdf5_tree(os.path.join(output_path, intermediate_h5_file))
         print means
-        frameSets = set_masks_to_mean(frameSets, means)
-        frameSets = substract_means(frameSets, means)
+        # frameSets = set_masks_to_mean(frameSets, means)
+        frameSets = substract_means_within_ellipse(frameSets, means)
         frameSets = mark_as_test(frameSets, 0.9)
         frameSets = cross_flows(frameSets)
         save_for_caffe(output_path, frameSets)
