@@ -26,3 +26,17 @@ class FrameSet:
 
     def getDbPostfix(self):
         return "test" if self.isTestSet else "train"
+
+    def isFlow(self):
+        return self.streamName.startswith("flow")
+
+    def crossWith(self, otherFrameSet):
+        def cross(frames1, frames2):
+            crossed_length = frames1.shape[0] + frames2.shape[0]
+            crossed_shape = (crossed_length,) + frames1.shape[1:]
+            return np.hstack((frames1, frames2)).reshape(crossed_shape)
+
+        crossed_frames = cross(self.frames, otherFrameSet.frames)
+        crossed_labels = cross(self.labels, otherFrameSet.labels)    
+        crossed_streamName = self.streamName + "-X-" + otherFrameSet.streamName
+        return self.newStream(crossed_frames, crossed_streamName, crossed_labels)

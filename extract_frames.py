@@ -237,7 +237,7 @@ def accumulate_means(frameSets, means, layer_counts):
         for frame in frameSet.frames:
             for layer in range(0, len(frame[0][0])):
                 flatFrame = frame[:, :, layer]
-                if frameSet.streamName.startswith("flow"):
+                if frameSet.isFlow():
                     means[frameSet.streamName][0] += np.sum(flatFrame)
                     layer_counts[frameSet.streamName][0] += np.count_nonzero(flatFrame)
                 else:
@@ -258,7 +258,7 @@ def calculate_means(means, layer_counts):
 
 def set_masks_to_mean(frameSets, means):
     for frameSet in frameSets:
-        if frameSet.streamName.startswith("flow"):
+        if frameSet.isFlow():
             frameSet.frames[frameSet.frames == 0] = means[frameSet.streamName][0]
         else:
             for layer in range(0,len(frameSet.frames[0])):
@@ -267,7 +267,7 @@ def set_masks_to_mean(frameSets, means):
 
 def substract_means(frameSets, means):
     for frameSet in frameSets:
-        if frameSet.streamName.startswith("flow"):
+        if frameSet.isFlow():
             frameSet.frames -= means[frameSet.streamName][0]
         else:
             for layer in range(0,len(frameSet.frames[0])):
@@ -290,6 +290,21 @@ def mark_as_test(frameSets, percentageTrainingSet):
 def write_means(output_path, means):
     with io.open(os.path.join(output_path,"means"), "w") as f:
         f.write(unicode(json.dumps(means)))
+
+def cross_flows(frameSets):
+    cache = {}
+    for frameSet in frameSets:
+        if ! frameSet.isFlow():
+            yield frameSet
+        else:
+            if frameSet.processName in cache:
+                cachedFrameSet = cache[frameSet.processName]
+                if frameSet.streamName == "flow-x":
+                    yield frameSet.crossWith(cachedFrameSet)
+                else:
+                    yield cachedFrameSet.crossWith(frameSet)
+            else:
+                cache[frameSet.processName] = frameSet
 
 def extraction_flow(video_path, output_path):
     intermediate_h5_file = "intermediate.h5"
@@ -329,6 +344,7 @@ def extraction_flow(video_path, output_path):
         frameSets = set_masks_to_mean(frameSets, means)
         frameSets = substract_means(frameSets, means)
         frameSets = mark_as_test(frameSets, 0.9)
+        frameSets = cross_flows(frameSets)
         save_for_caffe(output_path, frameSets)
 
     extract_frames()
