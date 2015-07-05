@@ -51,7 +51,7 @@ def split_grayscale_BGR(frameset):
 
     frames_grayscale, frames_BGR = zip(*[split_frame_channels(frame) for frame in frameset.frames])
 
-    yield FrameSet(np.expand_dims(frames_grayscale,3), "grayscale", frameset.processName, frameset.labels)
+    yield FrameSet(np.expand_dims(frames_grayscale, 3), "grayscale", frameset.processName, frameset.labels)
     yield FrameSet(frames_BGR, "BGR", frameset.processName, frameset.labels)
 
 # Do face detection and return the first face
@@ -231,14 +231,29 @@ def filter_frames_with_labels(frameSets):
         filtered_labels = [frameSet.labels[i] for i in range(0, frame_count) if np.count_nonzero(frameSet.labels[i]) > 0]
         yield frameSet.newStream(filtered_frames, frameSet.streamName, filtered_labels)
 
-def resizeFrames(frameSets, x, y):
+def resize_frames(frameSets, x, y):
     for frameSet in frameSets:
         if DEBUG:
-            print "resizeFrames:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
+            print "resize_frames:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
         resized_frames = map(lambda frame: cv2.resize(frame, (x, y)), frameSet.frames)
         if len(resized_frames[0].shape) < 3:
             resized_frames = map(lambda frame: np.expand_dims(frame, 2), resized_frames)
         yield frameSet.newStream(resized_frames, frameSet.streamName)
+
+def normalize_frames(frameSets):
+    def normalize_frame(np_image):
+        # normalize the image to contain values from 0 to 1 in each channel
+        maxval = max(abs(np_image.min()), np_image.max())
+        if maxval != 0.0:
+            np_image *= (1.0 / maxval)
+        return np_image
+
+    for frameSet in frameSets:
+        if DEBUG:
+            print "normalize_images:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
+        for i in range(0, len(frameSet.frames)):
+            frameSet.frames[i] = normalize_frame(frameSet.frames[i])
+        yield frameSet
 
 def accumulate_means(frameSets, means, layer_counts):
     for frameSet in frameSets:
@@ -379,7 +394,7 @@ def extraction_flow(video_path, output_path):
             frameSets = induce_flows(frameSets)
             frameSets = filter_framesets_out_by_stream_name(frameSets, "grayscale")
             frameSets = filter_frames_with_labels(frameSets)
-            frameSets = resizeFrames(frameSets, 227, 227)
+            frameSets = resize_frames(frameSets, 227, 227)
             frameSets = accumulate_means(frameSets, means, layer_counts)
             frameSets = transform_to_caffe_format(frameSets)
             save_as_hdf5_tree(output_path, intermediate_h5_file, frameSets)
@@ -389,6 +404,7 @@ def extraction_flow(video_path, output_path):
         print means
         # frameSets = set_masks_to_mean(frameSets, means)
         frameSets = substract_means_within_ellipse(frameSets, means)
+        frameSets = normalize_frames(frameSets)
         frameSets = mark_as_test(frameSets, 0.9)
         frameSets = cross_flows(frameSets)
         save_for_caffe(output_path, frameSets)
