@@ -248,11 +248,11 @@ def accumulate_means(frameSets, means, layer_counts):
             for layer in range(0, len(frame[0][0])):
                 flatFrame = frame[:, :, layer]
                 if frameSet.isFlow():
-                    means[frameSet.streamName][0] += np.sum(flatFrame)
-                    layer_counts[frameSet.streamName][0] += np.count_nonzero(flatFrame)
+                    means[frameSet.streamName]["0"] += np.sum(flatFrame)
+                    layer_counts[frameSet.streamName]["0"] += np.count_nonzero(flatFrame)
                 else:
-                    means[frameSet.streamName][layer] += np.sum(flatFrame)
-                    layer_counts[frameSet.streamName][layer] += np.count_nonzero(flatFrame)
+                    means[frameSet.streamName][str(layer)] += np.sum(flatFrame)
+                    layer_counts[frameSet.streamName][str(layer)] += np.count_nonzero(flatFrame)
         yield frameSet
 
 def calculate_means(means, layer_counts):
@@ -261,7 +261,7 @@ def calculate_means(means, layer_counts):
         print json.dumps(layer_counts)
     for streamName, counts_per_layer in layer_counts.items():
         for layer, count in counts_per_layer.items():
-            means[streamName][layer] = means[streamName][layer] / count
+            means[streamName][str(layer)] = means[streamName][str(layer)] / count
     if DEBUG:
         print json.dumps(means)
     return means
@@ -269,22 +269,22 @@ def calculate_means(means, layer_counts):
 def set_masks_to_mean(frameSets, means):
     for frameSet in frameSets:
         if frameSet.isFlow():
-            frameSet.frames[frameSet.frames == 0] = means[frameSet.streamName][0]
+            frameSet.frames[frameSet.frames == 0] = means[frameSet.streamName]['0']
         else:
             for layer in range(0,len(frameSet.frames[0])):
-                frameSet.frames[:, layer][frameSet.frames[:, layer] == 0] = means[frameSet.streamName][layer]
+                frameSet.frames[:, layer][frameSet.frames[:, layer] == 0] = means[frameSet.streamName][str(layer)]
         yield frameSet
 
 def substract_means(frameSets, means):
     for frameSet in frameSets:
         if frameSet.isFlow():
-            frameSet.frames -= means[frameSet.streamName][0]
+            frameSet.frames -= means[frameSet.streamName]['0']
         else:
             for layer in range(0,len(frameSet.frames[0])):
-                frameSet.frames[:, layer] -= means[frameSet.streamName][layer]
+                frameSet.frames[:, layer] -= means[frameSet.streamName][str(layer)]
         yield frameSet
 
-def substract_means_within_ellipse(frameSets, means):
+def set_mask_to_zero(frameSets):
     """
         frameSets: in caffe format (frames X layers X Y x X)
     """
@@ -304,12 +304,6 @@ def substract_means_within_ellipse(frameSets, means):
 
 
     for frameSet in frameSets:
-        if frameSet.isFlow():
-            frameSet.frames -= means[frameSet.streamName][0]
-        else:
-            for layer in range(0,len(frameSet.frames[0])):
-                frameSet.frames[:, layer] -= means[frameSet.streamName][layer]
-
         ellipseCenter, ellipseAxes = calculate_ellipses_parameters(frameSet)
         apply_mask = apply_mask_with_Parameters(ellipseCenter, ellipseAxes)
         
@@ -335,6 +329,11 @@ def mark_as_test(frameSets, percentageTrainingSet):
 def write_means(output_path, means):
     with io.open(os.path.join(output_path,"means"), "w") as f:
         f.write(unicode(json.dumps(means)))
+
+def read_means(output_path):
+    with io.open(os.path.join(output_path,"means"), "r") as f:
+        s = f.read()
+        return json.loads(s)
 
 def cross_flows(frameSets):
     cache = {}
@@ -373,7 +372,7 @@ def extraction_flow(video_path, output_path):
             frameSet = FrameSet(frames, "framesOriginal", processId, labels)
 
             frameSets = split_grayscale_BGR(frameSet)
-            frameSets = multiply_frames(frameSets)
+            #frameSets = multiply_frames(frameSets)
             # frameSets = add_one(frameSets)
             frameSets = detect_faces_and_mask_surroundings(frameSets, face_cache)
             frameSets = induce_flows(frameSets)
@@ -388,14 +387,20 @@ def extraction_flow(video_path, output_path):
         frameSets = read_from_hdf5_tree(os.path.join(output_path, intermediate_h5_file))
         print means
         # frameSets = set_masks_to_mean(frameSets, means)
-        frameSets = substract_means_within_ellipse(frameSets, means)
+        frameSets = substract_means(frameSets, means)
+        frameSets = set_mask_to_zero(frameSets)
         frameSets = mark_as_test(frameSets, 0.9)
         frameSets = cross_flows(frameSets)
         save_for_caffe(output_path, frameSets)
 
-    extract_frames()
-    means = calculate_means(means, layer_counts)
-    write_means(output_path, means)
+    if not os.path.exists(os.path.join(output_path, intermediate_h5_file)):
+        print "No intermediate.h5 found, starting complete extraction"
+        extract_frames()
+        means = calculate_means(means, layer_counts)
+        write_means(output_path, means)
+    else:
+        print "Intermediate.h5 found, only doing second pass!"
+        means = read_means(output_path)
     finalize()
     write_labels_to_disk(output_path)
 
