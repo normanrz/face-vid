@@ -362,6 +362,7 @@ def cross_flows(frameSets):
                     yield frameSet.crossWith(cachedFrameSet)
                 else:
                     yield cachedFrameSet.crossWith(frameSet)
+                del cache[frameSet.processName]
             else:
                 cache[frameSet.processName] = frameSet
 
