@@ -35,9 +35,15 @@ class FrameSet:
 
     def crossWith(self, otherFrameSet):
         def cross(frames1, frames2):
-            crossed_length = frames1.shape[0] + frames2.shape[0]
-            crossed_shape = (crossed_length,) + frames1.shape[1:]
-            return np.hstack((frames1, frames2)).reshape(crossed_shape)
+            crossed_length = frames1.shape[1] + frames2.shape[1]
+            crossed_shape = (frames1.shape[0], crossed_length,) + frames1.shape[2:]
+
+            result = np.zeros(crossed_shape)
+            for i in range(0, frames1.shape[0]):
+                for j in range(0, frames1.shape[1]):
+                    result[i, 2 * j] = frames1[i, j]
+                    result[i, 2 * j + 1] = frames2[i, j]
+            return result
 
         crossed_frames = cross(self.frames, otherFrameSet.frames)
         crossed_labels = cross(self.labels, otherFrameSet.labels)    
