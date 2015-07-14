@@ -7,9 +7,11 @@ import argparse
 import glob
 import re
 from collections import defaultdict
+from predict import forward_net_single, forward_net_multi
 
-THRESHOLD = 0.5
+THRESHOLD = 0.2
 NUMBER_OF_LABELS = 37
+
 
 # Pretty print confusion table of predicted vs true labels
 def print_table(headers, data):
@@ -35,15 +37,12 @@ def print_table(headers, data):
         row.append(predictedSums[pl])
     print row_format.format("[sum]", *(row + [sum(row)]))
 
-# Example:
-# python ../model-evaluation/mulab2_eval.py --model "snapshots/ONE-*_iter_10000.caffemodel" --proto "one-vs-all/deploy.prototxt" --hdf5 framesBGR_test_source.txt
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--proto', type=str, required=True)
-    parser.add_argument('--model-glob', dest='model_pattern', type=str, required=True)
-    parser.add_argument('--hdf5', type=str, required=True)
-    args = parser.parse_args()
 
+def avg_model_results(m1, m2):
+    return (m1 + m2) / 2
+
+
+def mulab(hdf5list, model_callback):
     true_positives = np.zeros(NUMBER_OF_LABELS, dtype=int)
     num_either = np.zeros(NUMBER_OF_LABELS, dtype=int)
     num_true = np.zeros(NUMBER_OF_LABELS, dtype=int)
@@ -54,11 +53,8 @@ if __name__ == "__main__":
     matrix = defaultdict(int) # (real,pred) -> int
     labels_set = set()
 
-    models = glob.glob(args.model_pattern)
-    print models
 
-
-    with open(args.hdf5,'r') as f:
+    with open(hdf5list, 'r') as f:
         for hdf5File in f:
             hdf5File = hdf5File.rstrip()
             if not hdf5File: continue
@@ -68,27 +64,10 @@ if __name__ == "__main__":
             data = h5file['data'][...]
             true_labels = h5file['label'][...].astype(bool)
 
-            output = np.zeros((data.shape[0], len(models)))
+            data = data[1:100, :, :, :]
+            true_labels = true_labels[1:100]
 
-            # data = data[1:100, :, :, :]
-            # true_labels = true_labels[1:100]
-            # output = np.zeros((data.shape[0], 37))
-
-
-            for model in models:
-
-                i = int(re.match(args.model_pattern.replace("*", "(\d+)"), model).group(1))
-
-                net = caffe.Net(args.proto, model, caffe.TEST)
-                caffe.set_mode_gpu()
-
-
-                print "(%i) Starting to forward data..." % i
-                out = net.forward_all(data=data)
-                print "(%i) Prediction finished" % i
-                prob_labels = out['prob']
-                print prob_labels
-                output[:, i] = prob_labels[:, 1]
+            output = model_callback(data)
 
             pred_labels = output > THRESHOLD
 
@@ -116,6 +95,7 @@ if __name__ == "__main__":
             sys.stdout.write("\rAccuracy: %.1f%%" % (100.*sum(true_positives)/sum(num_either)))
             sys.stdout.flush()
 
+        print("\n")
         print true_positives
         print num_either
 
@@ -127,3 +107,16 @@ if __name__ == "__main__":
         for i in range(0, NUMBER_OF_LABELS):
             print "%d : %f \t %f" % (i, true_positives[i] * 100.0 / num_pred[i], true_positives[i] * 100.0 / num_true[i])
 
+
+if __name__ == "__main__":
+
+    hdf5file = "face-vid-nets/framesBGR_test_source.txt"
+
+    def model_callback(data):
+        # return avg_model_results(
+        #     forward_net_single(data, "nets/an-finetune/deploy.prototxt", "nets/ANF_iter_50000.caffemodel"),
+        #     forward_net_multi(data, "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_10000.caffemodel")
+        # )
+        return forward_net_multi(data, "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_10000.caffemodel")
+
+    mulab(hdf5file, model_callback)
