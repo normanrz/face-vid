@@ -169,7 +169,7 @@
 }
 .result-page .video-panel,
 .result-page .prediction-panel {
-  height: 310px;
+  min-height: 435px;
 }
 .result-page .video-panel {
   justify-content: center;
