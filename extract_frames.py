@@ -30,7 +30,8 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
 
 CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_frontalface_alt.xml")
 SCALE_FLOW = 10
-DEBUG = False
+DEBUG = True
+ONE_HAS_BEEN_ADDED=False
 
 faceCascade = cv2.CascadeClassifier(CLASSIFIER_PATH)
 
@@ -50,7 +51,7 @@ def split_grayscale_BGR(frameset):
 
     frames_grayscale, frames_BGR = zip(*[split_frame_channels(frame) for frame in frameset.frames])
 
-    yield FrameSet(np.expand_dims(frames_grayscale,3), "grayscale", frameset.processName, frameset.labels)
+    yield FrameSet(np.expand_dims(frames_grayscale, 3), "grayscale", frameset.processName, frameset.labels)
     yield FrameSet(frames_BGR, "BGR", frameset.processName, frameset.labels)
 
 # Do face detection and return the first face
@@ -64,6 +65,15 @@ def detect_face(image):
     )
 
     return faces
+
+def add_one(frameSets):
+    global ONE_HAS_BEEN_ADDED
+    ONE_HAS_BEEN_ADDED = True
+    for frameSet in frameSets:
+        for frameI in range(len(frameSet.frames)):
+            frameSet.frames[frameI] += 1
+        yield frameSet
+
 
 # Invoke face detection, find largest cropping window and apply elliptical mask
 def detect_faces_and_mask_surroundings(frameSets, face_cache):
@@ -221,14 +231,29 @@ def filter_frames_with_labels(frameSets):
         filtered_labels = [frameSet.labels[i] for i in range(0, frame_count) if np.count_nonzero(frameSet.labels[i]) > 0]
         yield frameSet.newStream(filtered_frames, frameSet.streamName, filtered_labels)
 
-def resizeFrames(frameSets, x, y):
+def resize_frames(frameSets, x, y):
     for frameSet in frameSets:
         if DEBUG:
-            print "resizeFrames:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
+            print "resize_frames:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
         resized_frames = map(lambda frame: cv2.resize(frame, (x, y)), frameSet.frames)
         if len(resized_frames[0].shape) < 3:
             resized_frames = map(lambda frame: np.expand_dims(frame, 2), resized_frames)
         yield frameSet.newStream(resized_frames, frameSet.streamName)
+
+def normalize_frames(frameSets):
+    def normalize_frame(np_image):
+        # normalize the image to contain values from 0 to 1 in each channel
+        maxval = max(abs(np_image.min()), np_image.max())
+        if maxval != 0.0:
+            np_image *= (1.0 / maxval)
+        return np_image
+
+    for frameSet in frameSets:
+        if DEBUG:
+            print "normalize_images:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
+        for i in range(0, len(frameSet.frames)):
+            frameSet.frames[i] = normalize_frame(frameSet.frames[i])
+        yield frameSet
 
 def accumulate_means(frameSets, means, layer_counts):
     for frameSet in frameSets:
@@ -237,12 +262,12 @@ def accumulate_means(frameSets, means, layer_counts):
         for frame in frameSet.frames:
             for layer in range(0, len(frame[0][0])):
                 flatFrame = frame[:, :, layer]
-                if frameSet.streamName.startswith("flow"):
-                    means[frameSet.streamName][0] += np.sum(flatFrame)
-                    layer_counts[frameSet.streamName][0] += np.count_nonzero(flatFrame)
+                if frameSet.isFlow():
+                    means[frameSet.streamName]["0"] += np.sum(flatFrame)
+                    layer_counts[frameSet.streamName]["0"] += np.count_nonzero(flatFrame)
                 else:
-                    means[frameSet.streamName][layer] += np.sum(flatFrame)
-                    layer_counts[frameSet.streamName][layer] += np.count_nonzero(flatFrame)
+                    means[frameSet.streamName][str(layer)] += np.sum(flatFrame)
+                    layer_counts[frameSet.streamName][str(layer)] += np.count_nonzero(flatFrame)
         yield frameSet
 
 def calculate_means(means, layer_counts):
@@ -251,27 +276,56 @@ def calculate_means(means, layer_counts):
         print json.dumps(layer_counts)
     for streamName, counts_per_layer in layer_counts.items():
         for layer, count in counts_per_layer.items():
-            means[streamName][layer] = means[streamName][layer] / count
+            means[streamName][str(layer)] = means[streamName][str(layer)] / count
     if DEBUG:
         print json.dumps(means)
     return means
 
 def set_masks_to_mean(frameSets, means):
     for frameSet in frameSets:
-        if frameSet.streamName.startswith("flow"):
-            frameSet.frames[frameSet.frames == 0] = means[frameSet.streamName][0]
+        if frameSet.isFlow():
+            frameSet.frames[frameSet.frames == 0] = means[frameSet.streamName]['0']
         else:
             for layer in range(0,len(frameSet.frames[0])):
-                frameSet.frames[:, layer][frameSet.frames[:, layer] == 0] = means[frameSet.streamName][layer]
+                frameSet.frames[:, layer][frameSet.frames[:, layer] == 0] = means[frameSet.streamName][str(layer)]
         yield frameSet
 
 def substract_means(frameSets, means):
     for frameSet in frameSets:
-        if frameSet.streamName.startswith("flow"):
-            frameSet.frames -= means[frameSet.streamName][0]
+        if frameSet.isFlow():
+            frameSet.frames -= means[frameSet.streamName]['0']
         else:
             for layer in range(0,len(frameSet.frames[0])):
-                frameSet.frames[:, layer] -= means[frameSet.streamName][layer]
+                frameSet.frames[:, layer] -= means[frameSet.streamName][str(layer)]
+        yield frameSet
+
+def set_mask_to_zero(frameSets):
+    """
+        frameSets: in caffe format (frames X layers X Y x X)
+    """
+    def calculate_ellipses_parameters(frameSet):
+        height = frameSet.frames.shape[2]
+        width = frameSet.frames.shape[3]
+        center = (int(width * 0.5), int(height * 0.5))
+        axes = (int(width * 0.4), int(height * 0.5))
+        return center, axes
+
+    def apply_mask_with_Parameters(ellipseCenter, ellipseAxes):
+        def apply_mask(frame):
+            mask = np.zeros_like(frame)
+            cv2.ellipse(mask, ellipseCenter, ellipseAxes, 0, 0, 360, (255, 255, 255), -1)
+            return np.where(mask>0, frame, mask)
+        return apply_mask
+
+
+    for frameSet in frameSets:
+        ellipseCenter, ellipseAxes = calculate_ellipses_parameters(frameSet)
+        apply_mask = apply_mask_with_Parameters(ellipseCenter, ellipseAxes)
+        
+        for frameI in range(frameSet.frames.shape[0]):
+            for layerI in range(frameSet.frames.shape[1]):
+                frameSet.frames[frameI, layerI] = apply_mask(frameSet.frames[frameI, layerI])
+
         yield frameSet
 
 def mark_as_test(frameSets, percentageTrainingSet):
@@ -290,6 +344,27 @@ def mark_as_test(frameSets, percentageTrainingSet):
 def write_means(output_path, means):
     with io.open(os.path.join(output_path,"means"), "w") as f:
         f.write(unicode(json.dumps(means)))
+
+def read_means(output_path):
+    with io.open(os.path.join(output_path,"means"), "r") as f:
+        s = f.read()
+        return json.loads(s)
+
+def cross_flows(frameSets):
+    cache = {}
+    for frameSet in frameSets:
+        if not frameSet.isFlow():
+            yield frameSet
+        else:
+            if frameSet.processName in cache:
+                cachedFrameSet = cache[frameSet.processName]
+                if frameSet.streamName == "flow-x":
+                    yield frameSet.crossWith(cachedFrameSet)
+                else:
+                    yield cachedFrameSet.crossWith(frameSet)
+                del cache[frameSet.processName]
+            else:
+                cache[frameSet.processName] = frameSet
 
 def extraction_flow(video_path, output_path):
     intermediate_h5_file = "intermediate.h5"
@@ -313,27 +388,38 @@ def extraction_flow(video_path, output_path):
             frameSet = FrameSet(frames, "framesOriginal", processId, labels)
 
             frameSets = split_grayscale_BGR(frameSet)
-            frameSets = multiply_frames(frameSets)
+            #frameSets = multiply_frames(frameSets)
+            # frameSets = add_one(frameSets)
             frameSets = detect_faces_and_mask_surroundings(frameSets, face_cache)
             frameSets = induce_flows(frameSets)
             frameSets = filter_framesets_out_by_stream_name(frameSets, "grayscale")
             frameSets = filter_frames_with_labels(frameSets)
-            frameSets = resizeFrames(frameSets, 227, 227)
+            frameSets = resize_frames(frameSets, 227, 227)
             frameSets = accumulate_means(frameSets, means, layer_counts)
             frameSets = transform_to_caffe_format(frameSets)
             save_as_hdf5_tree(output_path, intermediate_h5_file, frameSets)
+            
+            # write_means(output_path, calculate_means(means, layer_counts))
 
     def finalize():
         frameSets = read_from_hdf5_tree(os.path.join(output_path, intermediate_h5_file))
         print means
-        frameSets = set_masks_to_mean(frameSets, means)
+        # frameSets = set_masks_to_mean(frameSets, means)
         frameSets = substract_means(frameSets, means)
+        frameSets = set_mask_to_zero(frameSets)
+        frameSets = normalize_frames(frameSets)
         frameSets = mark_as_test(frameSets, 0.9)
+        frameSets = cross_flows(frameSets)
         save_for_caffe(output_path, frameSets)
 
-    extract_frames()
-    means = calculate_means(means, layer_counts)
-    write_means(output_path, means)
+    if not os.path.exists(os.path.join(output_path, intermediate_h5_file)):
+        print "No intermediate.h5 found, starting complete extraction"
+        extract_frames()
+        means = calculate_means(means, layer_counts)
+        write_means(output_path, means)
+    else:
+        print "Intermediate.h5 found, only doing second pass!"
+        means = read_means(output_path)
     finalize()
     write_labels_to_disk(output_path)
 
