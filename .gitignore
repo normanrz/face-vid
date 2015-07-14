@@ -10,3 +10,5 @@ data
 *.log.train
 face-vid-nets/snapshots/
 face-vid-nets/results/
+
+node_modules
