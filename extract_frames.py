@@ -398,6 +398,8 @@ def extraction_flow(video_path, output_path):
             frameSets = accumulate_means(frameSets, means, layer_counts)
             frameSets = transform_to_caffe_format(frameSets)
             save_as_hdf5_tree(output_path, intermediate_h5_file, frameSets)
+            
+            # write_means(output_path, calculate_means(means, layer_counts))
 
     def finalize():
         frameSets = read_from_hdf5_tree(os.path.join(output_path, intermediate_h5_file))
