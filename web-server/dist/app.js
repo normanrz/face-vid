@@ -57571,7 +57571,7 @@
 	      id: 2,
 	      thumbnail: '/images/examples/video2.png',
 	      title: 'Anger',
-	      activity: 'Action Units: 4, 24, 45'
+	      activity: 'Action Units: 4, 7, 24, 45'
 	    }, {
 	      id: 3,
 	      thumbnail: '/images/examples/video3.png',
@@ -61852,14 +61852,12 @@
 	      _lodash2["default"].extend(this.props.data, {
 	        onclick: this.props.onDataClick,
 	        type: "bar",
-	        tooltip: {
-	          show: false
-	        },
 	        labels: {
 	          format: function format(value) {
 	            return value.toFixed(2);
 	          }
-	        }
+	        },
+	        order: "asc"
 	
 	      });
 	
@@ -61870,7 +61868,7 @@
 	          enabled: false
 	        },
 	        size: {
-	          height: 290
+	          height: 400
 	        },
 	        axis: {
 	          x: {
@@ -61882,6 +61880,9 @@
 	        },
 	        legend: {
 	          position: "bottom"
+	        },
+	        tooltip: {
+	          show: false
 	        }
 	      });
 	    }
@@ -61985,6 +61986,18 @@
 	        data: this.props.data,
 	        color: {
 	          pattern: ["#2196F3", "#4dd0e1", "#e57373 ", "#4db6ac", "#fff176", "#7986cb"]
+	        },
+	        tooltip: {
+	          format: {
+	            title: function title(x) {
+	              return "Frame #" + x;
+	            }
+	          }
+	        },
+	        axis: {
+	          x: {
+	            label: "Frame Number"
+	          }
 	        }
 	      });
 	    }

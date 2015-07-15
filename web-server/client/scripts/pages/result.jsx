@@ -52,7 +52,7 @@ class Result extends Component {
 
     return {
       x : "frameNumber",
-      columns : columns
+      columns : columns,
     }
   }
 

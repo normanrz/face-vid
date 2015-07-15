@@ -26,7 +26,7 @@ class VideoStore {
         id : 2,
         thumbnail : "/images/examples/video2.png",
         title : "Anger",
-        activity : "Action Units: 4, 24, 45"
+        activity : "Action Units: 4, 7, 24, 45"
       },
       {
         id : 3,
