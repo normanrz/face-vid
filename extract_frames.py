@@ -388,7 +388,7 @@ def extraction_flow(video_path, output_path):
             frameSet = FrameSet(frames, "framesOriginal", processId, labels)
 
             frameSets = split_grayscale_BGR(frameSet)
-            #frameSets = multiply_frames(frameSets)
+            frameSets = multiply_frames(frameSets)
             # frameSets = add_one(frameSets)
             frameSets = detect_faces_and_mask_surroundings(frameSets, face_cache)
             frameSets = induce_flows(frameSets)
@@ -404,12 +404,14 @@ def extraction_flow(video_path, output_path):
     def finalize():
         frameSets = read_from_hdf5_tree(os.path.join(output_path, intermediate_h5_file))
         print means
+        frameSets = filter_framesets_out_by_stream_name(frameSets, "flow-x")
+        frameSets = filter_framesets_out_by_stream_name(frameSets, "flow-y")
         # frameSets = set_masks_to_mean(frameSets, means)
         frameSets = substract_means(frameSets, means)
         frameSets = set_mask_to_zero(frameSets)
-        frameSets = normalize_frames(frameSets)
+        #frameSets = normalize_frames(frameSets)
         frameSets = mark_as_test(frameSets, 0.9)
-        frameSets = cross_flows(frameSets)
+        #frameSets = cross_flows(frameSets)
         save_for_caffe(output_path, frameSets)
 
     if not os.path.exists(os.path.join(output_path, intermediate_h5_file)):
