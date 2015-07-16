@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $# -lt 2 ]; then
+if [ $# -lt 1 ]; then
   echo "Usage: $0 <fullpath to hdf5files>"
   exit 1
 fi
@@ -10,6 +10,6 @@ declare -a modes=(train test)
 
 for stream in ${streams[@]}; do
   for mode in ${modes[@]}; do
-    ls -1 $1/$stream_$mode* > $stream_$mode_source.txt 
+    ls -1 $1/${stream}_${mode}* > ${stream}_${mode}_source.txt 
   done
 done
