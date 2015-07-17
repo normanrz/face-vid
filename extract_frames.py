@@ -409,9 +409,10 @@ def extraction_flow(video_path, output_path):
         frameSets = set_mask_to_zero(frameSets)
         frameSets = normalize_frames(frameSets)
         
-        frameSetsT = transform_to_opencv_format(frameSets)
-        # save_to_disk_as_image(output_path, frameSetsT)
-        # frameSets = mark_as_test(frameSets, 0.9)
+        #frameSetsT = transform_to_opencv_format(frameSets)
+        #save_to_disk_as_image(output_path, frameSetsT)
+        
+        frameSets = mark_as_test(frameSets, 0.9)
         frameSets = cross_flows(frameSets)
         save_for_caffe(output_path, frameSets)
 
