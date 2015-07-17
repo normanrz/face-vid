@@ -50,12 +50,19 @@ def save_to_disk_as_image(output_path, frameSets):
 
 def transform_to_caffe_format(frameSets):
     """
-    transforms the opencv format Frames x X x Y x Layers into caffe format Frames x Layers x X x Y
+    transforms the opencv format Frames x X x Y x Layers into caffe format Frames x Layers x Y x X
     """
     for frameSet in frameSets:
         swapped_axes = [np.swapaxes(frame, 0, 2) for frame in frameSet.frames]
         frames_as_big_blob = np.array(swapped_axes)
         yield frameSet.newFrames(frames_as_big_blob)
+
+def transform_to_opencv_format(frameSets):
+    """
+    transforms the caffe format Frames x Layers x Y x X into open cv format Frames x X x Y x Layers
+    """
+    for frameSet in frameSets:
+        yield frameSet.newFrames(list(np.swapaxes(frameSet.frames, 1, 3)))
 
 def save_as_hdf5_tree(output_path, db_name, frameSets):
     """

@@ -249,10 +249,11 @@ def normalize_frames(frameSets):
         return np_image
 
     for frameSet in frameSets:
-        if DEBUG:
-            print "normalize_images:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
-        for i in range(0, len(frameSet.frames)):
-            frameSet.frames[i] = normalize_frame(frameSet.frames[i])
+        if frameSet.isFlow():
+            if DEBUG:
+                print "normalize_images:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
+            for i in range(0, len(frameSet.frames)):
+                frameSet.frames[i] = normalize_frame(frameSet.frames[i])
         yield frameSet
 
 def accumulate_means(frameSets, means, layer_counts):
@@ -307,7 +308,8 @@ def set_mask_to_zero(frameSets):
         height = frameSet.frames.shape[2]
         width = frameSet.frames.shape[3]
         center = (int(width * 0.5), int(height * 0.5))
-        axes = (int(width * 0.4), int(height * 0.5))
+        axes = (int(width * 0.5), int(height * 0.4))
+        print height, width, center, axes
         return center, axes
 
     def apply_mask_with_Parameters(ellipseCenter, ellipseAxes):
@@ -389,7 +391,7 @@ def extraction_flow(video_path, output_path):
 
             frameSets = split_grayscale_BGR(frameSet)
             frameSets = multiply_frames(frameSets)
-            # frameSets = add_one(frameSets)
+            
             frameSets = detect_faces_and_mask_surroundings(frameSets, face_cache)
             frameSets = induce_flows(frameSets)
             frameSets = filter_framesets_out_by_stream_name(frameSets, "grayscale")
@@ -398,20 +400,19 @@ def extraction_flow(video_path, output_path):
             frameSets = accumulate_means(frameSets, means, layer_counts)
             frameSets = transform_to_caffe_format(frameSets)
             save_as_hdf5_tree(output_path, intermediate_h5_file, frameSets)
-            
-            # write_means(output_path, calculate_means(means, layer_counts))
+
 
     def finalize():
         frameSets = read_from_hdf5_tree(os.path.join(output_path, intermediate_h5_file))
         print means
-        frameSets = filter_framesets_out_by_stream_name(frameSets, "flow-x")
-        frameSets = filter_framesets_out_by_stream_name(frameSets, "flow-y")
-        # frameSets = set_masks_to_mean(frameSets, means)
         frameSets = substract_means(frameSets, means)
         frameSets = set_mask_to_zero(frameSets)
-        #frameSets = normalize_frames(frameSets)
-        frameSets = mark_as_test(frameSets, 0.9)
-        #frameSets = cross_flows(frameSets)
+        frameSets = normalize_frames(frameSets)
+        
+        frameSetsT = transform_to_opencv_format(frameSets)
+        # save_to_disk_as_image(output_path, frameSetsT)
+        # frameSets = mark_as_test(frameSets, 0.9)
+        frameSets = cross_flows(frameSets)
         save_for_caffe(output_path, frameSets)
 
     if not os.path.exists(os.path.join(output_path, intermediate_h5_file)):
