@@ -175,11 +175,10 @@ def multiply_frames(frameSets):
         return np.array(np.fmax(np.fmin(gain * np.array(frame, dtype=np.float32) + bias, 255), 0), dtype=np.uint8)
 
     for frameSet in frameSets:
-        yield frameSet
         for i, angle in enumerate([0, -3, 3, -6, 6]):
             rotatedFrames = [rotate_frame(frame, angle) for frame in frameSet.frames]
             for j, gain in enumerate([0]):
-                for k, bias in enumerate([-40, -20, 0, 20]):
+                for k, bias in enumerate([0, -20, -10, 10]):
                     newFrames = [contrast_brightness(frame, 1.1 ** gain, bias) for frame in rotatedFrames]
                     newProcessName = frameSet.processName + "-multi%i-%i-%i" % (i, j, k)
                     yield frameSet.newProcess(newFrames, newProcessName)
@@ -331,16 +330,21 @@ def set_mask_to_zero(frameSets):
         yield frameSet
 
 def mark_as_test(frameSets, percentageTrainingSet):
+    def canocalize_process_name(processName):
+        pattern = "-multi0-0-0"
+        return processName[:-len(pattern)]
+
     cache = {}
     for frameSet in frameSets:
-        if frameSet.processName in cache:
-            frameSet.markAsTest(cache[frameSet.processName])
+        canonicalizedProcessName = canocalize_process_name(frameSet.processName)
+        if canonicalizedProcessName in cache:
+            frameSet.markAsTest(cache[canonicalizedProcessName])
         elif random.random() > 0.9:
             frameSet.markAsTest(True)
-            cache[frameSet.processName] = True
+            cache[canonicalizedProcessName] = True
         else:
             frameSet.markAsTest(False)
-            cache[frameSet.processName] = False
+            cache[canonicalizedProcessName] = False
         yield frameSet
 
 def write_means(output_path, means):
@@ -368,6 +372,11 @@ def cross_flows(frameSets):
             else:
                 cache[frameSet.processName] = frameSet
 
+def tee(output_path, frameSets):
+    frameSets = list(frameSets)
+    save_to_disk_as_image(output_path, frameSets)
+    return frameSets
+
 def extraction_flow(video_path, output_path):
     intermediate_h5_file = "intermediate.h5"
     means = defaultdict(lambda: defaultdict(float))
@@ -390,11 +399,14 @@ def extraction_flow(video_path, output_path):
             frameSet = FrameSet(frames, "framesOriginal", processId, labels)
 
             frameSets = split_grayscale_BGR(frameSet)
+            #frameSets = tee(output_path+"/original", frameSets)
             frameSets = multiply_frames(frameSets)
-            
             frameSets = detect_faces_and_mask_surroundings(frameSets, face_cache)
+            #frameSets = tee(output_path+"/faces", frameSets)
+
             frameSets = induce_flows(frameSets)
             frameSets = filter_framesets_out_by_stream_name(frameSets, "grayscale")
+            #frameSets = tee(output_path+"/flows", frameSets)
             frameSets = filter_frames_with_labels(frameSets)
             frameSets = resize_frames(frameSets, 227, 227)
             frameSets = accumulate_means(frameSets, means, layer_counts)
@@ -407,11 +419,11 @@ def extraction_flow(video_path, output_path):
         print means
         frameSets = substract_means(frameSets, means)
         frameSets = set_mask_to_zero(frameSets)
+        #frameSets = tee(output_path+"/meanssubstracted", frameSets)
         frameSets = normalize_frames(frameSets)
-        
-        #frameSetsT = transform_to_opencv_format(frameSets)
-        #save_to_disk_as_image(output_path, frameSetsT)
-        
+
+        #frameSets = tee(output_path+"/normalized", frameSets)
+
         frameSets = mark_as_test(frameSets, 0.9)
         frameSets = cross_flows(frameSets)
         save_for_caffe(output_path, frameSets)

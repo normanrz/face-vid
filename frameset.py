@@ -4,25 +4,31 @@
 import numpy as np
 
 class FrameSet:
-    def __init__(self, frames, streamName, processName, labels, isTestSet = False):
+    possible_formats = ["opencv", "caffe"]
+
+    def __init__(self, frames, streamName, processName, labels, format = "opencv", isTestSet = False):
         self.frames = frames
         self.streamName = streamName
         self.processName = processName
         self.labels = labels
+        if format in  FrameSet.possible_formats:
+            self.format = format
+        else:
+            raise TypeError("format must be one of %s" % (",".join(FrameSet.possible_formats)))
         self.isTestSet = isTestSet
 
     def map(self, f):
-        return FrameSet(map(f, self.frames), self.streamName, self.processName, self.labels, self.isTestSet)
+        return FrameSet(map(f, self.frames), self.streamName, self.processName, self.labels, self.format, self.isTestSet)
 
     def newStream(self, frames, newStreamName, newLabels=None):
         labels = newLabels if newLabels != None else self.labels
-        return FrameSet(frames, newStreamName, self.processName, labels, self.isTestSet)
+        return FrameSet(frames, newStreamName, self.processName, labels, self.format, self.isTestSet)
 
     def newProcess(self, frames, newProcessName):
-        return FrameSet(frames, self.streamName, newProcessName, self.labels, self.isTestSet)
+        return FrameSet(frames, self.streamName, newProcessName, self.labels, self.format, self.isTestSet)
 
     def newFrames(self, frames):
-        return FrameSet(frames, self.streamName, self.processName, self.labels, self.isTestSet)
+        return FrameSet(frames, self.streamName, self.processName, self.labels, self.format, self.isTestSet)
 
     def markAsTest(self, isTestSet):
         self.isTestSet = isTestSet
@@ -32,6 +38,18 @@ class FrameSet:
 
     def isFlow(self):
         return self.streamName.startswith("flow")
+
+    def withFormat(self, format):
+        if format in FrameSet.possible_formats:
+            return FrameSet(self.frames, self.streamName, self.processName, self.labels, format, self.isTestSet)
+        else:
+            raise TypeError("format must be one of %s" % (",".join(possible_formats)))
+
+    def isInCaffeFormat(self):
+        return self.format == "caffe"
+
+    def isInOpenCVFormat(self):
+        return self.format == "opencv"
 
     def crossWith(self, otherFrameSet):
         def cross(frames1, frames2):
@@ -48,4 +66,4 @@ class FrameSet:
         crossed_frames = cross(self.frames, otherFrameSet.frames)
         crossed_labels = cross(self.labels, otherFrameSet.labels)    
         crossed_streamName = self.streamName + "-X-" + otherFrameSet.streamName
-        return FrameSet(crossed_frames, crossed_streamName, self.processName, crossed_labels, self.isTestSet)
+        return FrameSet(crossed_frames, crossed_streamName, self.processName, crossed_labels, self.format, self.isTestSet)

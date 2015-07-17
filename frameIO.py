@@ -38,6 +38,10 @@ def get_frames(video_file_name):
         sys.exit("Error opening video file.")
 
 def save_to_disk_as_image(output_path, frameSets):
+    frameSets = transform_to_opencv_format(frameSets)
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+
     for frameSet in frameSets:
         print "save_to_disk:", frameSet.processName, frameSet.streamName, frameSet.frames[0].shape
         for i, frame in enumerate(frameSet.frames):
@@ -55,14 +59,17 @@ def transform_to_caffe_format(frameSets):
     for frameSet in frameSets:
         swapped_axes = [np.swapaxes(frame, 0, 2) for frame in frameSet.frames]
         frames_as_big_blob = np.array(swapped_axes)
-        yield frameSet.newFrames(frames_as_big_blob)
+        yield frameSet.newFrames(frames_as_big_blob).withFormat("caffe")
 
 def transform_to_opencv_format(frameSets):
     """
     transforms the caffe format Frames x Layers x Y x X into open cv format Frames x X x Y x Layers
     """
     for frameSet in frameSets:
-        yield frameSet.newFrames(list(np.swapaxes(frameSet.frames, 1, 3)))
+        if not frameSet.isInOpenCVFormat():
+            yield frameSet.newFrames(list(np.swapaxes(frameSet.frames, 1, 3))).withFormat("opencv")
+        else:
+            yield frameSet
 
 def save_as_hdf5_tree(output_path, db_name, frameSets):
     """
@@ -85,7 +92,7 @@ def read_from_hdf5_tree(hdf5_file):
     f = h5py.File(hdf5_file, "r")
     for processName, streams in f.items():
         for streamName, dataAndLabels in streams.items():
-            yield FrameSet(dataAndLabels["data"].value, streamName, processName, dataAndLabels["label"].value)
+            yield FrameSet(dataAndLabels["data"].value, streamName, processName, dataAndLabels["label"].value, "caffe")
     f.close()
 
 def save_for_caffe(output_path, frameSets, DEBUG=False):
