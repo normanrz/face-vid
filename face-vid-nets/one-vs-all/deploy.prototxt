@@ -246,7 +246,7 @@ layer {
   }
 }
 layer {
-  name: "fc7-facevid"
+  name: "fc7"
   type: "InnerProduct"
   bottom: "fc6"
   top: "fc7"
@@ -259,7 +259,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 256
+    num_output: 4096
     weight_filler {
       type: "gaussian"
       std: 0.005

@@ -28,7 +28,7 @@ import random
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
    return ''.join(random.choice(chars) for _ in range(size))
 
-CLASSIFIER_PATH = os.path.join(os.path.dirname(sys.argv[0]), "haarcascade_frontalface_alt.xml")
+CLASSIFIER_PATH = os.path.join(os.path.dirname(__file__), "haarcascade_frontalface_alt.xml")
 SCALE_FLOW = 10
 DEBUG = True
 ONE_HAS_BEEN_ADDED=False

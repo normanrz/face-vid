@@ -7,6 +7,9 @@ from flask import *
 from flask.json import jsonify
 from werkzeug import secure_filename
 
+predict_path = path.abspath(path.join('..'))
+sys.path.append(predict_path)
+import predict
 
 # Local predicition modules
 # sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'prediction')) #find modules in parent_folder/predictions
@@ -74,8 +77,8 @@ def bad_request(reason):
 # -------- Prediction & Features --------
 def get_prediction(file_path):
 
-    # predictions = external_script.predict(file_path)
-    predictions = np.loadtxt("prob_result.csv")
+    predictions = predict.get_predictions(file_path)
+    # predictions = np.loadtxt("prob_result.csv")
     print predictions.shape
 
     file_path = file_path + "?cachebuster=%s" % time.time()
@@ -117,7 +120,7 @@ if __name__ == "__main__":
     )
 
     # Make sure all frontend assets are compiled
-    subprocess.Popen("webpack")
+    # subprocess.Popen("webpack")
 
     # Start the Flask app
     app.run(port=9000)

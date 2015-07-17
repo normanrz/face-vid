@@ -34,7 +34,7 @@
 /******/ 	__webpack_require__.c = installedModules;
 /******/
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/";
+/******/ 	__webpack_require__.p = "/Users/norman/uni/face-vid/web-server/dist/";
 /******/
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
