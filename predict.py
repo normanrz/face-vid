@@ -25,17 +25,18 @@ def avg_net_results(probs):
     return reduce(lambda x, y: x + y, probs) / 2
 
 
-def get_predictions(video_file_name):
+def get_predictions(video_file_name, means_file_name="videos/means.json"):
 
-    means_file_name = "results/means"
     frames = get_frames(video_file_name)
     means = read_means(means_file_name)
     frameSets = preprocess_frames(frames, means)
 
-    prob_result = avg_net_results([
-        forward_net_single(frameSets[1], "nets/an-finetune/deploy.prototxt", "nets/ANF_iter_50000.caffemodel"),
-        forward_net_multi(frameSets[1], "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_10000.caffemodel")
-    ])
+    prob_result = forward_net_multi(frameSets[0].frames, "../face-vid-nets/one-vs-all/deploy.prototxt", "../face-vid-nets/snapshots/ONE-*_iter_2500.caffemodel")
+
+    # prob_result = avg_net_results([
+    #     forward_net_single(frameSets[1], "nets/an-finetune/deploy.prototxt", "nets/ANF_iter_50000.caffemodel"),
+    #     forward_net_multi(frameSets[1], "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_10000.caffemodel")
+    # ])
 
     return prob_result
 
@@ -52,10 +53,12 @@ def main():
     means = read_means(means_file_name)
     frameSets = preprocess_frames(frames, means)
 
-    prob_result = avg_net_results([
-        forward_net_single(frameSets[1].frames, "nets/an-finetune/deploy.prototxt", "nets/ANF_iter_50000.caffemodel"),
-        forward_net_multi(frameSets[1].frames, "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_10000.caffemodel")
-    ])
+    # prob_result = avg_net_results([
+    #     forward_net_single(frameSets[0].frames, "nets/an-finetune/deploy.prototxt", "nets/ANF_iter_50000.caffemodel"),
+    #     forward_net_multi(frameSets[0].frames, "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_10000.caffemodel")
+    # ])
+
+    prob_result = forward_net_multi(frameSets[0].frames, "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_10000.caffemodel")
 
     print prob_result
     label_result = prob_result > THRESHOLD
@@ -83,11 +86,16 @@ def preprocess_frames(frames, means):
     # Finalize (e.g. mean substraction)
     frameSets = substract_means(frameSets, means)
     frameSets = set_mask_to_zero(frameSets)
-    frameSets = normalize_frames(frameSets)
-    frameSets = list(mark_as_test(frameSets, 0.9))
     frameSets = cross_flows(frameSets)
 
-    return list(frameSets)
+    frameSets = list(frameSets)
+
+    frameSetsBGR = filter(lambda f: f.streamName == "BGR", frameSets)
+    frameSetsFlow = filter(lambda f: f.isFlow(), frameSets)
+
+    frameSetsFlow = list(normalize_frames(frameSetsFlow))
+
+    return frameSetsBGR + frameSetsFlow
 
 def forward_net_single(data, proto, model):
     net = caffe.Net(proto, model, caffe.TEST)
