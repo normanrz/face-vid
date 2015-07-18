@@ -6,6 +6,7 @@ from flask.ext.cors import CORS
 from flask import *
 from flask.json import jsonify
 from werkzeug import secure_filename
+from flask_extensions import *
 
 predict_path = path.abspath(path.join('..'))
 sys.path.append(predict_path)
@@ -21,30 +22,34 @@ CORS(app)
 
 # ----- Routes ----------
 
-@app.route("/")
-def index():
-    return app.send_static_file("index.html")
-
-@app.route("/<path:path>")
-def send_static(path):
-    # Assets and video are in different directories
-    if path.startswith("videos"):#
-        path = path.replace("videos/", "")
-        print  send_from_directory(app.config["UPLOAD_FOLDER"], path)
-        return send_from_directory(app.config["UPLOAD_FOLDER"], path)
+@app.route("/", defaults={"fall_through": ""})
+@app.route("/<path:fall_through>")
+def index(fall_through):
+    if fall_through:
+        return redirect(url_for("index"))
     else:
-        return send_from_directory(static_assets_path, path)
+        return app.send_static_file("index.html")
+
+
+@app.route("/dist/<path:asset_path>")
+def send_static(asset_path):
+    return send_from_directory(static_assets_path, asset_path)
+
+
+@app.route("/videos/<path:video_path>")
+def send_video(video_path):
+    return send_file_partial(path.join(app.config["UPLOAD_FOLDER"], video_path))
 
 
 @app.route("/api/upload", methods=["POST"])
 def uploadVideo():
 
-    def isAllowed(filename):
+    def is_allowed(filename):
         return len(filter(lambda ext: ext in filename, ["avi", "mpg", "mpeg", "mkv", "webm", "mp4"])) > 0
 
     file = request.files.getlist("video")[0]
 
-    if file and isAllowed(file.filename):
+    if file and is_allowed(file.filename):
         filename = secure_filename(file.filename)
         file_path = path.join(app.config["UPLOAD_FOLDER"], filename)
         file.save(file_path)
@@ -77,8 +82,8 @@ def bad_request(reason):
 # -------- Prediction & Features --------
 def get_prediction(file_path):
 
-    # predictions = predict.get_predictions(file_path)
-    predictions = np.loadtxt("prob_result.csv")
+    predictions = predict.get_predictions(file_path)
+    # predictions = np.loadtxt("prob_result.csv")
     print predictions.shape
 
     file_path = file_path + "?cachebuster=%s" % time.time()

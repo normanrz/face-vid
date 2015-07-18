@@ -56,23 +56,23 @@
 	
 	var _libRouter2 = _interopRequireDefault(_libRouter);
 	
-	var _imagesFavicon96x96Png = __webpack_require__(262);
+	var _imagesFavicon96x96Png = __webpack_require__(263);
 	
 	var _imagesFavicon96x96Png2 = _interopRequireDefault(_imagesFavicon96x96Png);
 	
-	var _imagesFaviconIco = __webpack_require__(263);
+	var _imagesFaviconIco = __webpack_require__(264);
 	
 	var _imagesFaviconIco2 = _interopRequireDefault(_imagesFaviconIco);
 	
-	var _imagesAppleTouchIcon114x114Png = __webpack_require__(264);
+	var _imagesAppleTouchIcon114x114Png = __webpack_require__(265);
 	
 	var _imagesAppleTouchIcon114x114Png2 = _interopRequireDefault(_imagesAppleTouchIcon114x114Png);
 	
-	var _stylesMainLess = __webpack_require__(265);
+	var _stylesMainLess = __webpack_require__(266);
 	
 	var _stylesMainLess2 = _interopRequireDefault(_stylesMainLess);
 	
-	var _materializeCss = __webpack_require__(266);
+	var _materializeCss = __webpack_require__(267);
 	
 	var _materializeCss2 = _interopRequireDefault(_materializeCss);
 	
@@ -20539,7 +20539,7 @@
 	
 	var _pagesResultJsx2 = _interopRequireDefault(_pagesResultJsx);
 	
-	var _pagesNotFoundJsx = __webpack_require__(261);
+	var _pagesNotFoundJsx = __webpack_require__(262);
 	
 	var _pagesNotFoundJsx2 = _interopRequireDefault(_pagesNotFoundJsx);
 	
@@ -57564,17 +57564,17 @@
 	    this.isInvalidFile = false;
 	    this.exampleVideos = [{
 	      id: 1,
-	      thumbnail: '/images/examples/video1.png',
+	      thumbnail: '/dist/images/examples/video1.png',
 	      title: 'Happiness',
 	      activity: 'Action Units: 12, 17, 18, 25, 45, 6'
 	    }, {
 	      id: 2,
-	      thumbnail: '/images/examples/video2.png',
+	      thumbnail: '/dist/images/examples/video2.png',
 	      title: 'Anger',
 	      activity: 'Action Units: 4, 7, 24, 45'
 	    }, {
 	      id: 3,
-	      thumbnail: '/images/examples/video3.png',
+	      thumbnail: '/dist/images/examples/video3.png',
 	      title: 'Disgust',
 	      activity: 'Action Units: 4, 9, 10, 11, 17, 38'
 	    }];
@@ -61411,7 +61411,7 @@
 	            _react2["default"].createElement(
 	              "a",
 	              { href: "/", className: "brand-logo" },
-	              _react2["default"].createElement("img", { src: "../../images/apple-touch-icon-72x72.png", width: "48px", height: "48px" }),
+	              _react2["default"].createElement("img", { src: "../../dist/images/apple-touch-icon-72x72.png", width: "48px", height: "48px" }),
 	              "FACS Label Classifier"
 	            ),
 	            _react2["default"].createElement(
@@ -61631,11 +61631,11 @@
 	
 	var _altUtilsConnectToStores2 = _interopRequireDefault(_altUtilsConnectToStores);
 	
-	var _componentsLinechartJsx = __webpack_require__(260);
+	var _componentsLinechartJsx = __webpack_require__(259);
 	
 	var _componentsLinechartJsx2 = _interopRequireDefault(_componentsLinechartJsx);
 	
-	var _componentsBarchartJsx = __webpack_require__(259);
+	var _componentsBarchartJsx = __webpack_require__(260);
 	
 	var _componentsBarchartJsx2 = _interopRequireDefault(_componentsBarchartJsx);
 	
@@ -61647,7 +61647,7 @@
 	
 	var _storesResultStore2 = _interopRequireDefault(_storesResultStore);
 	
-	var _storesColorStore = __webpack_require__(267);
+	var _storesColorStore = __webpack_require__(261);
 	
 	var _storesColorStore2 = _interopRequireDefault(_storesColorStore);
 	
@@ -61841,6 +61841,118 @@
 	
 	var _baseComponentJsx2 = _interopRequireDefault(_baseComponentJsx);
 	
+	var LineChart = (function (_Component) {
+	  function LineChart() {
+	    _classCallCheck(this, LineChart);
+	
+	    _get(Object.getPrototypeOf(LineChart.prototype), "constructor", this).apply(this, arguments);
+	  }
+	
+	  _inherits(LineChart, _Component);
+	
+	  _createClass(LineChart, [{
+	    key: "componentDidMount",
+	    value: function componentDidMount() {
+	      this.generateChart();
+	    }
+	  }, {
+	    key: "componentDidUpdate",
+	    value: function componentDidUpdate() {
+	      this.generateChart();
+	    }
+	  }, {
+	    key: "generateChart",
+	    value: function generateChart() {
+	
+	      _lodash2["default"].extend(this.props.data, {
+	        selection: {
+	          enabled: true,
+	          multiple: false
+	        },
+	        onclick: this.props.onDataClick
+	      });
+	
+	      var chart = _c32["default"].generate({
+	        bindto: this.refs.chart.getDOMNode(),
+	        data: this.props.data,
+	        tooltip: {
+	          format: {
+	            title: function title(x) {
+	              return "Frame #" + x;
+	            }
+	          }
+	        },
+	        axis: {
+	          x: {
+	            label: "Frame Number"
+	          }
+	        }
+	      });
+	    }
+	  }, {
+	    key: "render",
+	    value: function render() {
+	      return _react2["default"].createElement("div", { ref: "chart" });
+	    }
+	  }]);
+	
+	  return LineChart;
+	})(_baseComponentJsx2["default"]);
+	
+	;
+	
+	LineChart.propTypes = {
+	  data: _react2["default"].PropTypes.object.isRequired,
+	  onDataClick: _react2["default"].PropTypes.func
+	};
+	
+	LineChart.defaultProps = {
+	  onDataClick: _lodash2["default"].noop
+	};
+	
+	exports["default"] = LineChart;
+	module.exports = exports["default"];
+
+/***/ },
+/* 260 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
+	
+	var _react = __webpack_require__(1);
+	
+	var _react2 = _interopRequireDefault(_react);
+	
+	var _lodash = __webpack_require__(178);
+	
+	var _lodash2 = _interopRequireDefault(_lodash);
+	
+	var _c3 = __webpack_require__(185);
+	
+	var _c32 = _interopRequireDefault(_c3);
+	
+	var _c3Css = __webpack_require__(187);
+	
+	var _c3Css2 = _interopRequireDefault(_c3Css);
+	
+	var _baseComponentJsx = __webpack_require__(180);
+	
+	var _baseComponentJsx2 = _interopRequireDefault(_baseComponentJsx);
+	
 	var BarChart = (function (_Component) {
 	  function BarChart() {
 	    _classCallCheck(this, BarChart);
@@ -61922,210 +62034,7 @@
 	module.exports = exports["default"];
 
 /***/ },
-/* 260 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-	
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	
-	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-	
-	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
-	
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
-	
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-	
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
-	
-	var _react = __webpack_require__(1);
-	
-	var _react2 = _interopRequireDefault(_react);
-	
-	var _lodash = __webpack_require__(178);
-	
-	var _lodash2 = _interopRequireDefault(_lodash);
-	
-	var _c3 = __webpack_require__(185);
-	
-	var _c32 = _interopRequireDefault(_c3);
-	
-	var _c3Css = __webpack_require__(187);
-	
-	var _c3Css2 = _interopRequireDefault(_c3Css);
-	
-	var _baseComponentJsx = __webpack_require__(180);
-	
-	var _baseComponentJsx2 = _interopRequireDefault(_baseComponentJsx);
-	
-	var LineChart = (function (_Component) {
-	  function LineChart() {
-	    _classCallCheck(this, LineChart);
-	
-	    _get(Object.getPrototypeOf(LineChart.prototype), "constructor", this).apply(this, arguments);
-	  }
-	
-	  _inherits(LineChart, _Component);
-	
-	  _createClass(LineChart, [{
-	    key: "componentDidMount",
-	    value: function componentDidMount() {
-	      this.generateChart();
-	    }
-	  }, {
-	    key: "componentDidUpdate",
-	    value: function componentDidUpdate() {
-	      this.generateChart();
-	    }
-	  }, {
-	    key: "generateChart",
-	    value: function generateChart() {
-	
-	      _lodash2["default"].extend(this.props.data, {
-	        selection: {
-	          enabled: true,
-	          multiple: false
-	        },
-	        onclick: this.props.onDataClick
-	      });
-	
-	      var chart = _c32["default"].generate({
-	        bindto: this.refs.chart.getDOMNode(),
-	        data: this.props.data,
-	        tooltip: {
-	          format: {
-	            title: function title(x) {
-	              return "Frame #" + x;
-	            }
-	          }
-	        },
-	        axis: {
-	          x: {
-	            label: "Frame Number"
-	          }
-	        }
-	      });
-	    }
-	  }, {
-	    key: "render",
-	    value: function render() {
-	      return _react2["default"].createElement("div", { ref: "chart" });
-	    }
-	  }]);
-	
-	  return LineChart;
-	})(_baseComponentJsx2["default"]);
-	
-	;
-	
-	LineChart.propTypes = {
-	  data: _react2["default"].PropTypes.object.isRequired,
-	  onDataClick: _react2["default"].PropTypes.func
-	};
-	
-	LineChart.defaultProps = {
-	  onDataClick: _lodash2["default"].noop
-	};
-	
-	exports["default"] = LineChart;
-	module.exports = exports["default"];
-
-/***/ },
 /* 261 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-	
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	
-	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-	
-	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
-	
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
-	
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-	
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
-	
-	var _react = __webpack_require__(1);
-	
-	var _react2 = _interopRequireDefault(_react);
-	
-	var _componentsBaseComponentJsx = __webpack_require__(180);
-	
-	var _componentsBaseComponentJsx2 = _interopRequireDefault(_componentsBaseComponentJsx);
-	
-	var NotFound = (function (_Component) {
-	  function NotFound() {
-	    _classCallCheck(this, NotFound);
-	
-	    _get(Object.getPrototypeOf(NotFound.prototype), "constructor", this).apply(this, arguments);
-	  }
-	
-	  _inherits(NotFound, _Component);
-	
-	  _createClass(NotFound, [{
-	    key: "render",
-	    value: function render() {
-	      return _react2["default"].createElement(
-	        "div",
-	        null,
-	        _react2["default"].createElement(
-	          "h1",
-	          null,
-	          "404!"
-	        ),
-	        "Route not found :/"
-	      );
-	    }
-	  }]);
-	
-	  return NotFound;
-	})(_componentsBaseComponentJsx2["default"]);
-	
-	;
-	
-	exports["default"] = NotFound;
-	module.exports = exports["default"];
-
-/***/ },
-/* 262 */
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = __webpack_require__.p + "images/favicon-96x96.png"
-
-/***/ },
-/* 263 */
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = __webpack_require__.p + "images/favicon.ico"
-
-/***/ },
-/* 264 */
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = __webpack_require__.p + "images/apple-touch-icon-114x114.png"
-
-/***/ },
-/* 265 */
-/***/ function(module, exports) {
-
-	// removed by extract-text-webpack-plugin
-
-/***/ },
-/* 266 */
-/***/ function(module, exports) {
-
-	// removed by extract-text-webpack-plugin
-
-/***/ },
-/* 267 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -62187,6 +62096,97 @@
 	
 	exports["default"] = _alt2["default"].createStore(ColorStore, "ColorStore");
 	module.exports = exports["default"];
+
+/***/ },
+/* 262 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
+	
+	var _react = __webpack_require__(1);
+	
+	var _react2 = _interopRequireDefault(_react);
+	
+	var _componentsBaseComponentJsx = __webpack_require__(180);
+	
+	var _componentsBaseComponentJsx2 = _interopRequireDefault(_componentsBaseComponentJsx);
+	
+	var NotFound = (function (_Component) {
+	  function NotFound() {
+	    _classCallCheck(this, NotFound);
+	
+	    _get(Object.getPrototypeOf(NotFound.prototype), "constructor", this).apply(this, arguments);
+	  }
+	
+	  _inherits(NotFound, _Component);
+	
+	  _createClass(NotFound, [{
+	    key: "render",
+	    value: function render() {
+	      return _react2["default"].createElement(
+	        "div",
+	        null,
+	        _react2["default"].createElement(
+	          "h1",
+	          null,
+	          "404!"
+	        ),
+	        "Route not found :/"
+	      );
+	    }
+	  }]);
+	
+	  return NotFound;
+	})(_componentsBaseComponentJsx2["default"]);
+	
+	;
+	
+	exports["default"] = NotFound;
+	module.exports = exports["default"];
+
+/***/ },
+/* 263 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__.p + "images/favicon-96x96.png"
+
+/***/ },
+/* 264 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__.p + "images/favicon.ico"
+
+/***/ },
+/* 265 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__.p + "images/apple-touch-icon-114x114.png"
+
+/***/ },
+/* 266 */
+/***/ function(module, exports) {
+
+	// removed by extract-text-webpack-plugin
+
+/***/ },
+/* 267 */
+/***/ function(module, exports) {
+
+	// removed by extract-text-webpack-plugin
 
 /***/ }
 /******/ ]);

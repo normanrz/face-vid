@@ -18,19 +18,19 @@ class VideoStore {
     this.exampleVideos = [
       {
         id : 1,
-        thumbnail : "/images/examples/video1.png",
+        thumbnail : "/dist/images/examples/video1.png",
         title : "Happiness",
         activity : "Action Units: 12, 17, 18, 25, 45, 6"
       },
       {
         id : 2,
-        thumbnail : "/images/examples/video2.png",
+        thumbnail : "/dist/images/examples/video2.png",
         title : "Anger",
         activity : "Action Units: 4, 7, 24, 45"
       },
       {
         id : 3,
-        thumbnail : "/images/examples/video3.png",
+        thumbnail : "/dist/images/examples/video3.png",
         title : "Disgust",
         activity : "Action Units: 4, 9, 10, 11, 17, 38"
       }
