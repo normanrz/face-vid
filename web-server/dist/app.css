@@ -2904,7 +2904,7 @@ input[type=range] + .thumb {
 }
 @font-face {
   font-family: "Material-Design-Icons";
-  src: url(/Users/norman/uni/face-vid/web-server/dist/fonts/Material-Design-Icons.eot?#iefix) format("embedded-opentype"), url(/Users/norman/uni/face-vid/web-server/dist/fonts/Material-Design-Icons.woff2) format("woff2"), url(/Users/norman/uni/face-vid/web-server/dist/fonts/Material-Design-Icons.woff) format("woff"), url(/Users/norman/uni/face-vid/web-server/dist/fonts/Material-Design-Icons.ttf) format("truetype"), url(/Users/norman/uni/face-vid/web-server/dist/_/node_modules/materialize-css/font/material-design-icons/Material-Design-Icons.svg#Material-Design-Icons) format("svg");
+  src: url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Material-Design-Icons.eot?#iefix) format("embedded-opentype"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Material-Design-Icons.woff2) format("woff2"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Material-Design-Icons.woff) format("woff"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Material-Design-Icons.ttf) format("truetype"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/_/node_modules/materialize-css/font/material-design-icons/Material-Design-Icons.svg#Material-Design-Icons) format("svg");
   font-weight: normal;
   font-style: normal;
 }
@@ -5600,27 +5600,27 @@ nav .input-field label.active {
 }
 @font-face {
   font-family: "Roboto";
-  src: url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Thin.woff2) format("woff2"), url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Thin.woff) format("woff"), url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Thin.ttf) format("truetype");
+  src: url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Thin.woff2) format("woff2"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Thin.woff) format("woff"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Thin.ttf) format("truetype");
   font-weight: 200;
 }
 @font-face {
   font-family: "Roboto";
-  src: url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Light.woff2) format("woff2"), url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Light.woff) format("woff"), url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Light.ttf) format("truetype");
+  src: url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Light.woff2) format("woff2"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Light.woff) format("woff"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Light.ttf) format("truetype");
   font-weight: 300;
 }
 @font-face {
   font-family: "Roboto";
-  src: url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Regular.woff2) format("woff2"), url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Regular.woff) format("woff"), url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Regular.ttf) format("truetype");
+  src: url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Regular.woff2) format("woff2"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Regular.woff) format("woff"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Regular.ttf) format("truetype");
   font-weight: 400;
 }
 @font-face {
   font-family: "Roboto";
-  src: url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Medium.woff2) format("woff2"), url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Medium.woff) format("woff"), url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Medium.ttf) format("truetype");
+  src: url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Medium.woff2) format("woff2"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Medium.woff) format("woff"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Medium.ttf) format("truetype");
   font-weight: 500;
 }
 @font-face {
   font-family: "Roboto";
-  src: url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Bold.woff2) format("woff2"), url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Bold.woff) format("woff"), url(/Users/norman/uni/face-vid/web-server/dist/fonts/Roboto-Bold.ttf) format("truetype");
+  src: url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Bold.woff2) format("woff2"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Bold.woff) format("woff"), url(/Users/therold/Google Drive/Uni/Practical Video Analyses/web-server/dist/fonts/Roboto-Bold.ttf) format("truetype");
   font-weight: 700;
 }
 a {

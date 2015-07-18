@@ -21,7 +21,6 @@ class BarChart extends Component {
       labels : {
         format : (value) => value.toFixed(2)
       },
-      order : "asc"
 
     })
 
@@ -32,15 +31,12 @@ class BarChart extends Component {
         enabled : false
       },
       size : {
-        height : 400
+        height : 290
       },
       axis: {
         x: {
           show : false
         }
-      },
-      color: {
-        pattern: ["#2196F3", "#4dd0e1", "#e57373 ", "#4db6ac",  "#fff176", "#7986cb",]
       },
       legend : {
         position : "bottom"
