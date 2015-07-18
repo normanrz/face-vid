@@ -308,7 +308,7 @@ def set_mask_to_zero(frameSets):
         width = frameSet.frames.shape[3]
         center = (int(width * 0.5), int(height * 0.5))
         axes = (int(width * 0.5), int(height * 0.4))
-        print height, width, center, axes
+        #print height, width, center, axes
         return center, axes
 
     def apply_mask_with_Parameters(ellipseCenter, ellipseAxes):
@@ -395,7 +395,7 @@ def extraction_flow(video_path, output_path):
 
             frames = get_frames(video_file_name)
             labels = get_labels(video_file_name, len(frames))
-            print "labels set:", np.count_nonzero(labels)
+            #print "labels set:", np.count_nonzero(labels)
             frameSet = FrameSet(frames, "framesOriginal", processId, labels)
 
             frameSets = split_grayscale_BGR(frameSet)
