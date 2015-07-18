@@ -64,6 +64,5 @@ class FrameSet:
             return result
 
         crossed_frames = cross(self.frames, otherFrameSet.frames)
-        crossed_labels = cross(self.labels, otherFrameSet.labels)    
         crossed_streamName = self.streamName + "-X-" + otherFrameSet.streamName
-        return FrameSet(crossed_frames, crossed_streamName, self.processName, crossed_labels, self.format, self.isTestSet)
+        return FrameSet(crossed_frames, crossed_streamName, self.processName, self.labels, self.format, self.isTestSet)
