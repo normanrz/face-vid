@@ -82,11 +82,10 @@ def bad_request(reason):
 # -------- Prediction & Features --------
 def get_prediction(file_path):
 
-    labels = predict.get_labels()
-    print labels
 
-    # predictions = predict.get_predictions(file_path)
-    predictions = np.loadtxt("prob_result.csv")
+    # predictions = np.loadtxt("prob_result.csv")
+    predictions = predict.get_predictions(file_path)
+    labels = predict.get_labels()
     print predictions.shape
 
     file_path = file_path + "?cachebuster=%s" % time.time()
