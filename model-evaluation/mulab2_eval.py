@@ -7,6 +7,10 @@ import argparse
 import glob
 import re
 from collections import defaultdict
+from os import path
+
+predict_path = path.abspath(path.join(path.dirname(__file__), '..'))
+sys.path.append(predict_path)
 from predict import forward_net_single, forward_net_multi
 
 THRESHOLD = 0.2
@@ -64,30 +68,30 @@ def mulab(hdf5list, model_callback):
             data = h5file['data'][...]
             true_labels = h5file['label'][...].astype(bool)
 
-            data = data[1:100, :, :, :]
-            true_labels = true_labels[1:100]
+            # data = data[1:100, :, :, :]
+            # true_labels = true_labels[1:100]
 
             output = model_callback(data)
 
             pred_labels = output > THRESHOLD
 
 
-            print "SHAPES"
-            print np.sum(pred_labels | true_labels, axis = 0).shape
-            print num_either.shape
+            # print "SHAPES"
+            # print np.sum(pred_labels | true_labels, axis = 0).shape
+            # print num_either.shape
 
-            print np.sum(pred_labels | true_labels, axis = 0)
+            # print np.sum(pred_labels | true_labels, axis = 0)
 
             num_either = num_either + np.sum(pred_labels | true_labels, axis = 0)
             true_positives = true_positives + np.sum(pred_labels & true_labels, axis = 0)
             num_true += np.sum(true_labels, axis = 0)
             num_pred += np.sum(pred_labels, axis = 0)
 
-            print "Comp:"
-            print true_labels
+            # print "Comp:"
+            # print true_labels
 
-            print sum(np.sum(np.logical_xor(pred_labels, true_labels), axis = 1) == 0)
-            print sum(np.sum(true_labels, axis = 1) == 0)
+            # print sum(np.sum(np.logical_xor(pred_labels, true_labels), axis = 1) == 0)
+            # print sum(np.sum(true_labels, axis = 1) == 0)
 
             num_correct += sum(np.sum(np.logical_xor(pred_labels, true_labels), axis = 1) == 0)
             count += true_labels.shape[0]
@@ -105,7 +109,17 @@ def mulab(hdf5list, model_callback):
         print "Per label Precision / Recall:"
 
         for i in range(0, NUMBER_OF_LABELS):
-            print "%d : %f \t %f" % (i, true_positives[i] * 100.0 / num_pred[i], true_positives[i] * 100.0 / num_true[i])
+            precision = 0 if num_pred[i] == 0 else true_positives[i] * 100.0 / num_pred[i]
+            recall = 0 if num_true[i] == 0 else true_positives[i] * 100.0 / num_true[i]
+            print "%d : %f \t %f" % (i, precision, recall)
+
+        print ""
+        print "Overall Precision / Recall / Accuracy"
+
+        overall_precision = 0 if np.sum(num_pred) == 0 else np.sum(true_positives) * 100.0 / np.sum(num_pred)
+        overall_recall = 0 if np.sum(num_true) == 0 else np.sum(true_positives) * 100.0 / np.sum(num_true)
+        overall_accuracy = np.sum(true_positives) * 100.0 / np.sum(num_either)
+        print "%f \t %f \t %f" % (overall_precision, overall_recall, overall_accuracy)
 
 
 if __name__ == "__main__":
@@ -117,6 +131,8 @@ if __name__ == "__main__":
         #     forward_net_single(data, "nets/an-finetune/deploy.prototxt", "nets/ANF_iter_50000.caffemodel"),
         #     forward_net_multi(data, "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_10000.caffemodel")
         # )
-        return forward_net_multi(data, "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_10000.caffemodel")
+        return forward_net_single(data, "face-vid-nets/an-finetune/deploy.prototxt", "face-vid-nets/snapshots/FLOW-_iter_20000.caffemodel")
+        return forward_net_single(data, "face-vid-nets/an-finetune/deploy.prototxt", "face-vid-nets/snapshots/ANF-S_iter_35000.caffemodel")
+        # return forward_net_multi(data, "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_2500.caffemodel")
 
     mulab(hdf5file, model_callback)
