@@ -1,4 +1,4 @@
-net: "/home/mpss2015/face-vid/face-vid-nets/an-finetune/train_val.prototxt"
+net: "/home/mpss2015/face-vid/face-vid-nets/simple-net/train_val.prototxt"
 
 # number of iterations per test
 test_iter: 50
@@ -6,7 +6,7 @@ test_iter: 50
 # interval between tests
 test_interval: 100
 
-base_lr: 0.000001
+base_lr: 0.001
 lr_policy: "step"
 gamma: 0.1
 stepsize: 50000
@@ -14,6 +14,6 @@ display: 20
 max_iter: 450000
 momentum: 0.9
 weight_decay: 0.0005
-snapshot: 10000
-snapshot_prefix: "snapshots/"
+snapshot: 5000
+snapshot_prefix: "snapshots/SIMPLE"
 solver_mode: GPU

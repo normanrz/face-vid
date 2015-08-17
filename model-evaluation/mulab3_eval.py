@@ -151,11 +151,14 @@ def mulab(hdf5lists, model_callback):
 if __name__ == "__main__":
 
     hdf5lists = [
-        "face-vid-nets/framesBGR_test_source.txt",
-        "face-vid-nets/framesBGR_test_source.txt"
+        "face-vid-nets/flows_test_source.txt",
+        "face-vid-nets/framesBGR_test2_source.txt"
     ]
 
     def model_callback(i, data):
-        return forward_net_single(data, "face-vid-nets/an-finetune/deploy.prototxt", "face-vid-nets/snapshots/ANF-S_iter_35000.caffemodel")
+        if i == 0:
+            return forward_net_single(data, "face-vid-nets/flow/deploy.prototxt", "face-vid-nets/snapshots/FLOW-_iter_20000.caffemodel")
+        else:
+            return forward_net_multi(data, "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_2500.caffemodel")
 
     mulab(hdf5lists, model_callback)

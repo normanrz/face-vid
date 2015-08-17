@@ -9,7 +9,8 @@ layer {
   }
   hdf5_data_param {
     source: "/home/mpss2015/face-vid/face-vid-nets/framesBGR_train_source.txt"
-    batch_size: 10
+    batch_size: 100
+    shuffle: true
   }
 }
 layer {
@@ -25,18 +26,29 @@ layer {
     batch_size: 100
   }
 }
+
+layer {
+  name: "slicer_label"
+  type: "Slice"
+  bottom: "label"
+  ## Example of label with a shape N x 3 x 1 x 1
+  <SLICE_CONFIG>
+}
+
+layer{
+  name: "silence"
+  type: "Silence"
+  <SILENCE_CONFIG>
+}
+
 layer {
   name: "conv1"
   type: "Convolution"
   bottom: "data"
   top: "conv1"
   param {
-    lr_mult: 1
+    lr_mult: 0
     decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
   }
   convolution_param {
     num_output: 96
@@ -51,6 +63,7 @@ layer {
       value: 0
     }
   }
+
 }
 layer {
   name: "relu1"
@@ -86,12 +99,8 @@ layer {
   bottom: "pool1"
   top: "conv2"
   param {
-    lr_mult: 1
+    lr_mult: 0
     decay_mult: 1
-  }
-  param {
-    lr_mult: 2
-    decay_mult: 0
   }
   convolution_param {
     num_output: 256
@@ -142,11 +151,7 @@ layer {
   bottom: "pool2"
   top: "conv3"
   param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
+    lr_mult: 0
     decay_mult: 0
   }
   convolution_param {
@@ -175,11 +180,7 @@ layer {
   bottom: "conv3"
   top: "conv4"
   param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
+    lr_mult: 0
     decay_mult: 0
   }
   convolution_param {
@@ -209,11 +210,7 @@ layer {
   bottom: "conv4"
   top: "conv5"
   param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
+    lr_mult: 0
     decay_mult: 0
   }
   convolution_param {
@@ -254,11 +251,7 @@ layer {
   bottom: "pool5"
   top: "fc6"
   param {
-    lr_mult: 1
-    decay_mult: 1
-  }
-  param {
-    lr_mult: 2
+    lr_mult: 0
     decay_mult: 0
   }
   inner_product_param {
@@ -289,16 +282,16 @@ layer {
   }
 }
 layer {
-  name: "fc7-facevid"
+  name: "fc7"
   type: "InnerProduct"
   bottom: "fc6"
   top: "fc7"
   param {
-    lr_mult: 10
+    lr_mult: 1
     decay_mult: 1
   }
   param {
-    lr_mult: 20
+    lr_mult: 2
     decay_mult: 0
   }
   inner_product_param {
@@ -320,15 +313,6 @@ layer {
   top: "fc7"
 }
 layer {
-  name: "drop7"
-  type: "Dropout"
-  bottom: "fc7"
-  top: "fc7"
-  dropout_param {
-    dropout_ratio: 0.5
-  }
-}
-layer {
   name: "fc8-facevid"
   type: "InnerProduct"
   bottom: "fc7"
@@ -342,7 +326,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 37
+    num_output: 2
     weight_filler {
       type: "gaussian"
       std: 0.01
@@ -354,19 +338,25 @@ layer {
   }
 }
 layer {
+  name: "prob"
+  type: "Softmax"
+  bottom: "fc8"
+  top: "prob"
+}
+layer {
   name: "accuracy"
   type: "Accuracy"
-  bottom: "fc8"
-  bottom: "label"
+  bottom: "prob"
+  bottom: "selected_label"
   top: "accuracy"
-  include {
-    phase: TEST
-  }
 }
-layer { 
-  name: "loss"
-  type: "HingeLoss"
-  bottom: "fc8"
-  bottom: "label"
+layer {
+  name: "infoGainLoss"
+  type: "InfogainLoss"
+  bottom: "prob"
+  bottom: "selected_label"
   top: "loss"
+  infogain_loss_param {
+    source: "<PROTO_PATH>/infogainH.binaryproto"
+  }
 }

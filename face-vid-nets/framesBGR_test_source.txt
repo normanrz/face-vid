@@ -1,4 +1,4 @@
-/opt/data_sets/mmi_oao_facs/hdf5/framesBGR_train_0.h5
-/opt/data_sets/mmi_oao_facs/hdf5/framesBGR_train_1.h5
-/opt/data_sets/mmi_oao_facs/hdf5/framesBGR_train_2.h5
-/opt/data_sets/mmi_oao_facs/hdf5/framesBGR_train_3.h5
+/mnt/naruto/data_sets/mmi_oao_facs/hdf5-2/framesBGR_test_0.h5
+/mnt/naruto/data_sets/mmi_oao_facs/hdf5-2/framesBGR_test_1.h5
+/mnt/naruto/data_sets/mmi_oao_facs/hdf5-2/framesBGR_test_2.h5
+/mnt/naruto/data_sets/mmi_oao_facs/hdf5-2/framesBGR_test_3.h5

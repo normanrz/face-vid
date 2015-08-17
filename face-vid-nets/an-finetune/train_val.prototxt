@@ -9,7 +9,8 @@ layer {
   }
   hdf5_data_param {
     source: "/home/mpss2015/face-vid/face-vid-nets/framesBGR_train_source.txt"
-    batch_size: 10
+    batch_size: 32
+    shuffle: true
   }
 }
 layer {
@@ -22,7 +23,7 @@ layer {
   }
   hdf5_data_param {
     source: "/home/mpss2015/face-vid/face-vid-nets/framesBGR_test_source.txt"
-    batch_size: 100
+    batch_size: 50
   }
 }
 layer {
@@ -302,7 +303,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 4096
+    num_output: 512
     weight_filler {
       type: "gaussian"
       std: 0.005
@@ -355,7 +356,7 @@ layer {
 }
 layer {
   name: "accuracy"
-  type: "Accuracy"
+  type: "MultiLabelAccuracy"
   bottom: "fc8"
   bottom: "label"
   top: "accuracy"
@@ -365,7 +366,7 @@ layer {
 }
 layer { 
   name: "loss"
-  type: "SigmoidCrossEntropyLossLayer"
+  type: "SigmoidCrossEntropyLoss"
   bottom: "fc8"
   bottom: "label"
   top: "loss"

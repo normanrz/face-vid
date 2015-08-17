@@ -8,8 +8,9 @@ layer {
     phase: TRAIN
   }
   hdf5_data_param {
-    source: "/home/mpss2015/face-vid/face-vid-nets/flow/flows_train_source.txt"
-    batch_size: 256
+    source: "/home/mpss2015/face-vid/face-vid-nets/flows_train_source.txt"
+    batch_size: 15
+    shuffle: true
   }
 }
 layer {
@@ -21,7 +22,7 @@ layer {
     phase: TEST
   }
   hdf5_data_param {
-    source: "/home/mpss2015/face-vid/face-vid-nets/flow/flows_test_source.txt"
+    source: "/home/mpss2015/face-vid/face-vid-nets/flows_test_source.txt"
     batch_size: 50
   }
 }
@@ -343,7 +344,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 1000
+    num_output: 37
     weight_filler {
       type: "gaussian"
       std: 0.01
@@ -356,7 +357,7 @@ layer {
 }
 layer {
   name: "accuracy"
-  type: "Accuracy"
+  type: "MultiLabelAccuracy"
   bottom: "fc8"
   bottom: "label"
   top: "accuracy"
@@ -364,9 +365,9 @@ layer {
     phase: TEST
   }
 }
-layer {
+layer { 
   name: "loss"
-  type: "SoftmaxWithLoss"
+  type: "SigmoidCrossEntropyLoss"
   bottom: "fc8"
   bottom: "label"
   top: "loss"

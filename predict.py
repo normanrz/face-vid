@@ -99,7 +99,7 @@ def preprocess_frames(frames, means):
 
 def forward_net_single(data, proto, model):
     net = caffe.Net(proto, model, caffe.TEST)
-    # caffe.set_mode_gpu()
+    caffe.set_mode_gpu()
 
     print "Starting to forward data..."
     out = net.forward_all(data=data)
@@ -120,7 +120,7 @@ def forward_net_multi(data, proto, model_pattern):
         i = int(re.match(model_pattern.replace("*", "(\d+)"), model).group(1))
 
         net = caffe.Net(proto, model, caffe.TEST)
-        # caffe.set_mode_gpu()
+        caffe.set_mode_gpu()
 
         print "(%i) Starting to forward data..." % i
         out = net.forward_all(data=data)

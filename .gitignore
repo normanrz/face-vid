@@ -6,6 +6,7 @@ data
 *.iml
 *.pyc
 *.log
+*.tlog
 *.log.test
 *.log.train
 face-vid-nets/snapshots/

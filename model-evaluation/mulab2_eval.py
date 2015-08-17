@@ -124,15 +124,15 @@ def mulab(hdf5list, model_callback):
 
 if __name__ == "__main__":
 
-    hdf5file = "face-vid-nets/framesBGR_test_source.txt"
+    hdf5file = "face-vid-nets/flows_test_source.txt"
 
     def model_callback(data):
         # return avg_model_results(
         #     forward_net_single(data, "nets/an-finetune/deploy.prototxt", "nets/ANF_iter_50000.caffemodel"),
         #     forward_net_multi(data, "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_10000.caffemodel")
         # )
-        return forward_net_single(data, "face-vid-nets/an-finetune/deploy.prototxt", "face-vid-nets/snapshots/FLOW-_iter_20000.caffemodel")
-        return forward_net_single(data, "face-vid-nets/an-finetune/deploy.prototxt", "face-vid-nets/snapshots/ANF-S_iter_35000.caffemodel")
-        # return forward_net_multi(data, "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_2500.caffemodel")
+        return forward_net_single(data, "face-vid-nets/flow/deploy.prototxt", "face-vid-nets/snapshots/FLOW-_iter_20000.caffemodel")
+        # return forward_net_single(data, "face-vid-nets/an-finetune/deploy.prototxt", "face-vid-nets/snapshots/ANF-S_iter_35000.caffemodel")
+        return forward_net_multi(data, "face-vid-nets/one-vs-all/deploy.prototxt", "face-vid-nets/snapshots/ONE-*_iter_2500.caffemodel")
 
     mulab(hdf5file, model_callback)
