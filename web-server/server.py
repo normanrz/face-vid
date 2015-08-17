@@ -82,8 +82,10 @@ def bad_request(reason):
 # -------- Prediction & Features --------
 def get_prediction(file_path):
 
-    predictions = predict.get_predictions(file_path)
+
     # predictions = np.loadtxt("prob_result.csv")
+    predictions = predict.get_predictions(file_path)
+    labels = predict.get_labels()
     print predictions.shape
 
     file_path = file_path + "?cachebuster=%s" % time.time()
@@ -102,7 +104,7 @@ def get_prediction(file_path):
 
         five_best = np.argpartition(row, -5)[-5:]
         for i in five_best:
-            pred_per_label.append({"label" : i, "prob" : row[i]})
+            pred_per_label.append({"label" : labels[i], "prob" : row[i]})
 
         new_frame = {
             "frameNumber" : index,

@@ -8,7 +8,7 @@
 #   - black oval mask around face
 #   - save optical flow along x & y axis
 #
-# Usage: extract_frames.py <max_frame_count> <path_to_video> <output_path>
+# Usage: extract_frames.py <videos_path> <output_path>
 #
 ###############################################################################
 from __future__ import generators
@@ -322,7 +322,7 @@ def set_mask_to_zero(frameSets):
     for frameSet in frameSets:
         ellipseCenter, ellipseAxes = calculate_ellipses_parameters(frameSet)
         apply_mask = apply_mask_with_Parameters(ellipseCenter, ellipseAxes)
-        
+
         for frameI in range(frameSet.frames.shape[0]):
             for layerI in range(frameSet.frames.shape[1]):
                 frameSet.frames[frameI, layerI] = apply_mask(frameSet.frames[frameI, layerI])

@@ -132,6 +132,16 @@ def forward_net_multi(data, proto, model_pattern):
     return output
 
 
+def get_labels():
+
+    labels = {}
+    with open("videos/labelmapping.txt","r") as f:
+        next(f) # skip header
+        for line in f:
+            value, key = line.split()
+            labels[int(key)] = value
+
+    return labels
 
 
 if __name__ == "__main__":
